@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
+import { Route as PostagensRouteImport } from './routes/postagens'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const CategoriasRoute = CategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostagensRoute = PostagensRouteImport.update({
+  id: '/postagens',
+  path: '/postagens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
+  '/postagens': typeof PostagensRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
+  '/postagens': typeof PostagensRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
+  '/postagens': typeof PostagensRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/blogs' | '/categorias'
+  fullPaths: '/' | '/blogs' | '/categorias' | '/postagens'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/blogs' | '/categorias'
-  id: '__root__' | '/' | '/blogs' | '/categorias'
+  to: '/' | '/blogs' | '/categorias' | '/postagens'
+  id: '__root__' | '/' | '/blogs' | '/categorias' | '/postagens'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogsRoute: typeof BlogsRoute
   CategoriasRoute: typeof CategoriasRoute
+  PostagensRoute: typeof PostagensRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/postagens': {
+      id: '/postagens'
+      path: '/postagens'
+      fullPath: '/postagens'
+      preLoaderRoute: typeof PostagensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogsRoute: BlogsRoute,
   CategoriasRoute: CategoriasRoute,
+  PostagensRoute: PostagensRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
