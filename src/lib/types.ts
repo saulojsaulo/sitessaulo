@@ -5,7 +5,7 @@ export interface Blog {
   name: string;
   url: string;
   description: string;
-  logo?: string;
+  logo?: string | undefined;
   color: string;
   createdAt: string;
 }
@@ -14,19 +14,19 @@ export interface Category {
   id: string;
   blogId: string;
   name: string;
-  description?: string;
+  description?: string | undefined;
 }
 
 export interface Post {
   id: string;
   blogId: string;
-  categoryId?: string;
+  categoryId?: string | undefined;
   title: string;
   content: string;
   tags: string[];
   status: PostStatus;
   publishDate: string;
-  cover?: string;
+  cover?: string | undefined;
   createdAt: string;
 }
 
