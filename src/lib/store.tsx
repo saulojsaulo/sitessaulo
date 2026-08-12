@@ -8,8 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import { BLOG_COLORS, type Blog, type Category, type Post } from "./types";
+import { supabase, type BlogRow, type CategoryRow, type PostRow } from "./supabase";
 
-const KEY = "postflow.data.v1";
+const ACTIVE_KEY = "postflow.activeBlogId";
 
 interface Data {
   blogs: Blog[];
@@ -21,6 +22,70 @@ interface Data {
 const empty: Data = { blogs: [], categories: [], posts: [], activeBlogId: null };
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+const fromBlog = (r: BlogRow): Blog => ({
+  id: r.id,
+  name: r.name,
+  url: r.url,
+  description: r.description ?? "",
+  logo: r.logo ?? undefined,
+  color: r.color,
+  createdAt: r.created_at,
+});
+
+const fromCategory = (r: CategoryRow): Category => ({
+  id: r.id,
+  blogId: r.blog_id,
+  name: r.name,
+  description: r.description ?? undefined,
+});
+
+const fromPost = (r: PostRow): Post => ({
+  id: r.id,
+  blogId: r.blog_id,
+  categoryId: r.category_id ?? undefined,
+  title: r.title,
+  content: r.content,
+  tags: r.tags ?? [],
+  status: r.status as Post["status"],
+  publishDate: r.publish_date,
+  cover: r.cover ?? undefined,
+  createdAt: r.created_at,
+});
+
+const toBlogRow = (b: Blog): BlogRow => ({
+  id: b.id,
+  name: b.name,
+  url: b.url,
+  description: b.description ?? "",
+  logo: b.logo ?? null,
+  color: b.color,
+  created_at: b.createdAt,
+});
+
+const toCategoryRow = (c: Category): CategoryRow => ({
+  id: c.id,
+  blog_id: c.blogId,
+  name: c.name,
+  description: c.description ?? "",
+});
+
+const toPostRow = (p: Post): PostRow => ({
+  id: p.id,
+  blog_id: p.blogId,
+  category_id: p.categoryId ?? null,
+  title: p.title,
+  content: p.content,
+  tags: p.tags,
+  status: p.status,
+  publish_date: p.publishDate,
+  cover: p.cover ?? null,
+  created_at: p.createdAt,
+});
+
+function logError(scope: string, error: unknown) {
+  if (error) console.error(`[postflow] ${scope}`, error);
+}
 
 interface StoreValue extends Data {
   hydrated: boolean;
@@ -45,23 +110,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setData({ ...empty, ...(JSON.parse(raw) as Data) });
-    } catch {
-      /* ignore corrupt storage */
-    }
-    setHydrated(true);
+    let cancelled = false;
+    (async () => {
+      const stored = (() => {
+        try {
+          return localStorage.getItem(ACTIVE_KEY);
+        } catch {
+          return null;
+        }
+      })();
+
+      const [blogsRes, catsRes, postsRes] = await Promise.all([
+        supabase.from("blogs").select("*").order("created_at"),
+        supabase.from("categories").select("*").order("name"),
+        supabase.from("posts").select("*").order("created_at"),
+      ]);
+      logError("load blogs", blogsRes.error);
+      logError("load categories", catsRes.error);
+      logError("load posts", postsRes.error);
+      if (cancelled) return;
+
+      const blogs = ((blogsRes.data ?? []) as BlogRow[]).map(fromBlog);
+      setData({
+        blogs,
+        categories: ((catsRes.data ?? []) as CategoryRow[]).map(fromCategory),
+        posts: ((postsRes.data ?? []) as PostRow[]).map(fromPost),
+        activeBlogId: blogs.some((b) => b.id === stored) ? stored : (blogs[0]?.id ?? null),
+      });
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(KEY, JSON.stringify(data));
+      if (data.activeBlogId) localStorage.setItem(ACTIVE_KEY, data.activeBlogId);
+      else localStorage.removeItem(ACTIVE_KEY);
     } catch {
       /* storage full */
     }
-  }, [data, hydrated]);
+  }, [data.activeBlogId, hydrated]);
 
   const setActiveBlogId = useCallback((id: string | null) => {
     setData((d) => ({ ...d, activeBlogId: id }));
@@ -85,17 +176,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       blogs: [...d.blogs, blog],
       activeBlogId: d.activeBlogId ?? blog.id,
     }));
+    void supabase
+      .from("blogs")
+      .insert(toBlogRow(blog))
+      .then(({ error }) => logError("insert blog", error));
     return blog;
   }, []);
 
   const updateBlog = useCallback((id: string, patch: Partial<Blog>) => {
-    setData((d) => ({
-      ...d,
-      blogs: d.blogs.map((b) => (b.id === id ? { ...b, ...patch } : b)),
-    }));
+    setData((d) => {
+      const next = d.blogs.map((b) => (b.id === id ? { ...b, ...patch } : b));
+      const row = next.find((b) => b.id === id);
+      if (row)
+        void supabase
+          .from("blogs")
+          .update(toBlogRow(row))
+          .eq("id", id)
+          .then(({ error }) => logError("update blog", error));
+      return { ...d, blogs: next };
+    });
   }, []);
 
   const removeBlog = useCallback((id: string) => {
+    void supabase
+      .from("blogs")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => logError("delete blog", error));
     setData((d) => {
       const blogs = d.blogs.filter((b) => b.id !== id);
       return {
@@ -108,17 +215,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addCategory = useCallback((c: Omit<Category, "id">) => {
-    setData((d) => ({ ...d, categories: [...d.categories, { ...c, id: uid() }] }));
+    const category: Category = { ...c, id: uid() };
+    void supabase
+      .from("categories")
+      .insert(toCategoryRow(category))
+      .then(({ error }) => logError("insert category", error));
+    setData((d) => ({ ...d, categories: [...d.categories, category] }));
   }, []);
 
   const updateCategory = useCallback((id: string, patch: Partial<Category>) => {
-    setData((d) => ({
-      ...d,
-      categories: d.categories.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-    }));
+    setData((d) => {
+      const next = d.categories.map((c) => (c.id === id ? { ...c, ...patch } : c));
+      const row = next.find((c) => c.id === id);
+      if (row)
+        void supabase
+          .from("categories")
+          .update(toCategoryRow(row))
+          .eq("id", id)
+          .then(({ error }) => logError("update category", error));
+      return { ...d, categories: next };
+    });
   }, []);
 
   const removeCategory = useCallback((id: string) => {
+    void supabase
+      .from("categories")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => logError("delete category", error));
     setData((d) => ({
       ...d,
       categories: d.categories.filter((c) => c.id !== id),
@@ -127,20 +251,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addPost = useCallback((p: Omit<Post, "id" | "createdAt">) => {
-    setData((d) => ({
-      ...d,
-      posts: [...d.posts, { ...p, id: uid(), createdAt: new Date().toISOString() }],
-    }));
+    const post: Post = { ...p, id: uid(), createdAt: new Date().toISOString() };
+    void supabase
+      .from("posts")
+      .insert(toPostRow(post))
+      .then(({ error }) => logError("insert post", error));
+    setData((d) => ({ ...d, posts: [...d.posts, post] }));
   }, []);
 
   const updatePost = useCallback((id: string, patch: Partial<Post>) => {
-    setData((d) => ({
-      ...d,
-      posts: d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-    }));
+    setData((d) => {
+      const next = d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p));
+      const row = next.find((p) => p.id === id);
+      if (row)
+        void supabase
+          .from("posts")
+          .update(toPostRow(row))
+          .eq("id", id)
+          .then(({ error }) => logError("update post", error));
+      return { ...d, posts: next };
+    });
   }, []);
 
   const removePost = useCallback((id: string) => {
+    void supabase
+      .from("posts")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => logError("delete post", error));
     setData((d) => ({ ...d, posts: d.posts.filter((p) => p.id !== id) }));
   }, []);
 
