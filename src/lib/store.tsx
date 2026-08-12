@@ -71,7 +71,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const blog: Blog = {
       id: uid(),
       createdAt: new Date().toISOString(),
-      color: input.color ?? BLOG_COLORS[Math.floor(Math.random() * BLOG_COLORS.length)],
+      color:
+        input.color ??
+        BLOG_COLORS[Math.floor(Math.random() * BLOG_COLORS.length)] ??
+        BLOG_COLORS[0]!,
       name: input.name,
       url: input.url,
       description: input.description,
