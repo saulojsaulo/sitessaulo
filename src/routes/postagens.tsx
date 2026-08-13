@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, FileText, Pencil, Plus, Search, Trash2, ArrowUpDown } from "lucide-react";
+import {
+  CalendarDays,
+  FileText,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  ArrowUpDown,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +67,9 @@ interface Draft {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+const buildStructurePrompt = (title: string) =>
+  `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\nPara cada seção da estrutura (título + subtítulos), adicione acima dela o seguinte prompt:\n"Gere o texto para a seção do blog:"`;
 
 function PostsPage() {
   const {
@@ -164,6 +176,27 @@ function PostsPage() {
   };
 
   const draftCategories = categories.filter((c) => c.blogId === draft?.blogId);
+
+  const generateStructurePrompt = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar o prompt");
+      return;
+    }
+    const text = buildStructurePrompt(title);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Prompt copiado!");
+    } catch {
+      toast.error("Não foi possível copiar o prompt");
+    }
+    setDraft({ ...draft, status: "estrutura" });
+    if (editing) {
+      updatePost(editing.id, { status: "estrutura" });
+      setEditing({ ...editing, status: "estrutura" });
+    }
+  };
 
   return (
     <>
@@ -364,6 +397,15 @@ function PostsPage() {
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="Como escrever melhores títulos"
                 />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mt-1 w-full gap-2 sm:w-auto"
+                  disabled={!draft.title.trim()}
+                  onClick={generateStructurePrompt}
+                >
+                  <Sparkles className="size-4" /> Gerar Prompt de Estrutura
+                </Button>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
