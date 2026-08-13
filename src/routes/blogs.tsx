@@ -109,7 +109,7 @@ function BlogsPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {blogs.map((blog) => {
             const catCount = categories.filter((c) => c.blogId === blog.id).length;
             const postCount = posts.filter((p) => p.blogId === blog.id).length;
@@ -117,12 +117,12 @@ function BlogsPage() {
             return (
               <article
                 key={blog.id}
-                className="surface group flex flex-col gap-4 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
+                className="surface group flex flex-col gap-3 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
                 style={isActive ? { borderColor: "var(--color-primary)" } : undefined}
               >
                 <div className="flex items-start gap-3">
                   <span
-                    className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl text-sm font-bold text-primary-foreground"
+                    className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl text-sm font-bold text-primary-foreground"
                     style={{ background: blog.color }}
                   >
                     {blog.logo ? (
@@ -132,29 +132,29 @@ function BlogsPage() {
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-base font-semibold">{blog.name}</h2>
+                    <h2 className="truncate text-sm font-semibold">{blog.name}</h2>
                     <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                       <Globe className="size-3" />
                       {blog.url || "sem domínio"}
                     </p>
                   </div>
                 </div>
-                <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">
+                <p className="line-clamp-2 min-h-8 text-xs text-muted-foreground">
                   {blog.description || "Sem descrição."}
                 </p>
-                <div className="flex gap-4 text-xs text-muted-foreground">
+                <div className="flex gap-3 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
-                    <FolderTree className="size-3.5" /> {catCount} categorias
+                    <FolderTree className="size-3.5" /> {catCount} cat.
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <FileText className="size-3.5" /> {postCount} postagens
+                    <FileText className="size-3.5" /> {postCount} posts
                   </span>
                 </div>
-                <div className="mt-auto flex items-center gap-2 border-t pt-3">
+                <div className="mt-auto flex items-center gap-2 border-t pt-2.5">
                   <Button
                     size="sm"
                     variant={isActive ? "default" : "secondary"}
-                    className="flex-1"
+                    className="flex-1 text-xs"
                     onClick={() => {
                       setActiveBlogId(blog.id);
                       toast.success(`${blog.name} selecionado`);
@@ -162,7 +162,7 @@ function BlogsPage() {
                   >
                     {isActive ? "Selecionado" : "Selecionar"}
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => startEdit(blog)}>
+                  <Button size="icon" variant="ghost" className="size-8" onClick={() => startEdit(blog)}>
                     <Pencil className="size-4" />
                   </Button>
                   <ConfirmDelete
@@ -173,7 +173,7 @@ function BlogsPage() {
                       toast.success("Blog excluído");
                     }}
                     trigger={
-                      <Button size="icon" variant="ghost" className="text-destructive">
+                      <Button size="icon" variant="ghost" className="size-8 text-destructive">
                         <Trash2 className="size-4" />
                       </Button>
                     }
