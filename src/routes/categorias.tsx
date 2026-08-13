@@ -118,30 +118,30 @@ function CategoriesPage() {
           }
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((c) => {
             const count = posts.filter((p) => p.categoryId === c.id).length;
             return (
               <div
                 key={c.id}
-                className="surface flex items-center gap-4 p-4 transition-all duration-200 hover:shadow-lift"
+                className="surface flex items-center gap-3 p-3 transition-all duration-200 hover:shadow-lift"
               >
                 <span
-                  className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground"
+                  className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground"
                   aria-hidden
                 >
                   <FolderTree className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate font-semibold">{c.name}</h2>
+                  <h2 className="truncate text-sm font-semibold">{c.name}</h2>
                   <p className="truncate text-xs text-muted-foreground">
                     {c.description || "Sem descrição"}
                   </p>
                 </div>
-                <span className="rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-medium text-primary">
-                  {count} post{count === 1 ? "" : "s"}
+                <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-medium text-primary">
+                  {count}
                 </span>
-                <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
+                <Button size="icon" variant="ghost" className="size-8" onClick={() => startEdit(c)}>
                   <Pencil className="size-4" />
                 </Button>
                 <ConfirmDelete
@@ -152,7 +152,7 @@ function CategoriesPage() {
                     toast.success("Categoria excluída");
                   }}
                   trigger={
-                    <Button size="icon" variant="ghost" className="text-destructive">
+                    <Button size="icon" variant="ghost" className="size-8 text-destructive">
                       <Trash2 className="size-4" />
                     </Button>
                   }

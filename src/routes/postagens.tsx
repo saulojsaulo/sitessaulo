@@ -282,32 +282,22 @@ function PostsPage() {
           description="Ajuste os filtros ou a busca para encontrar suas postagens."
         />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           {filtered.map((p) => (
             <article
               key={p.id}
-              className="surface flex flex-col gap-4 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:flex-row sm:items-center"
+              onClick={() => startEdit(p)}
+              className="surface group flex cursor-pointer items-center gap-3 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
             >
-              <div className="h-20 w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-32">
-                {p.cover ? (
-                  <img
-                    src={p.cover}
-                    alt={`Capa de ${p.title}`}
-                    className="size-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="grid size-full place-items-center text-muted-foreground">
-                    <FileText className="size-5" />
-                  </div>
-                )}
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+                <FileText className="size-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate font-semibold">{p.title}</h2>
                   <StatusBadge status={p.status} />
                 </div>
-                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                   <span>{blogName(p.blogId)}</span>
                   <span>·</span>
                   <span>{catName(p.categoryId)}</span>
@@ -318,14 +308,22 @@ function PostsPage() {
                   </span>
                 </p>
                 {p.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {p.tags.map((t) => (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {p.tags.slice(0, 4).map((t) => (
                       <TagChip key={t} label={t} />
                     ))}
+                    {p.tags.length > 4 && (
+                      <span className="self-center text-xs text-muted-foreground">
+                        +{p.tags.length - 4}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Button size="icon" variant="ghost" onClick={() => startEdit(p)}>
                   <Pencil className="size-4" />
                 </Button>
