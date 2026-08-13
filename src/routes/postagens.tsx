@@ -380,7 +380,7 @@ function PostsPage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar postagem" : "Nova postagem"}</DialogTitle>
             <DialogDescription>
