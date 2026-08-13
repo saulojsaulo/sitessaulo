@@ -67,13 +67,7 @@ function Dashboard() {
   const { blogs, categories, posts, hydrated } = useStore();
 
   const byStatus = useMemo(() => {
-    const acc: Record<PostStatus, number> = {
-      rascunho: 0,
-      estrutura: 0,
-      artigo_completo: 0,
-      agendado: 0,
-      publicado: 0,
-    };
+    const acc: Record<PostStatus, number> = { rascunho: 0, agendado: 0, publicado: 0 };
     for (const p of posts) acc[p.status] += 1;
     return acc;
   }, [posts]);

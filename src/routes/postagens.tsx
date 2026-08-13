@@ -1,16 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  CalendarDays,
-  FileText,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  ArrowUpDown,
-  ClipboardCopy,
-} from "lucide-react";
+import { CalendarDays, FileText, Pencil, Plus, Search, Trash2, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,24 +164,6 @@ function PostsPage() {
   };
 
   const draftCategories = categories.filter((c) => c.blogId === draft?.blogId);
-
-  const copyStructurePrompt = async () => {
-    if (!draft) return;
-    const keyword = draft.title.trim();
-    if (!keyword) {
-      toast.error("Informe o título da postagem (palavra-chave)");
-      return;
-    }
-    const prompt = `Gere uma outline (estrutura de artigo para blog) com a palavra-chave [${keyword}], acima de cada sessão (estrutura [título + subtítulos]), adicione esse prompt: 'Gere o texto para a seção do blog:'`;
-    try {
-      await navigator.clipboard.writeText(prompt);
-      toast.success("Prompt copiado para a área de transferência");
-    } catch {
-      toast.error("Não foi possível copiar o prompt");
-    }
-    setDraft({ ...draft, status: "estrutura" });
-    if (editing) updatePost(editing.id, { status: "estrutura" });
-  };
 
   return (
     <>
@@ -391,16 +364,6 @@ function PostsPage() {
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="Como escrever melhores títulos"
                 />
-              </div>
-              <div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={copyStructurePrompt}
-                  className="gap-2"
-                >
-                  <ClipboardCopy className="size-4" /> Prompt Estrutura
-                </Button>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
