@@ -69,7 +69,7 @@ interface Draft {
 const today = () => new Date().toISOString().slice(0, 10);
 
 const buildStructurePrompt = (title: string) =>
-  `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\nPara cada seção da estrutura (título + subtítulos), adicione acima dela o seguinte prompt:\n"Gere o texto para a seção do blog:"`;
+  `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\nPara cada seção da estrutura (título + subtítulos), adicione acima dela o seguinte prompt:\n"Gere o texto para a seção do blog (na frente do Título adicione "##" e na frente de cada subtítulo adicione "###":"`;
 
 function PostsPage() {
   const {
