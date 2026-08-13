@@ -1,4 +1,9 @@
-export type PostStatus = "rascunho" | "agendado" | "publicado";
+export type PostStatus =
+  | "rascunho"
+  | "estrutura"
+  | "artigo_completo"
+  | "agendado"
+  | "publicado";
 
 export interface Blog {
   id: string;
@@ -32,6 +37,8 @@ export interface Post {
 
 export const STATUS_LABEL: Record<PostStatus, string> = {
   rascunho: "Rascunho",
+  estrutura: "Estrutura",
+  artigo_completo: "Artigo Completo",
   agendado: "Agendado",
   publicado: "Publicado",
 };
