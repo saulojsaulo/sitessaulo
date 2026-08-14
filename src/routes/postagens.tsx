@@ -492,7 +492,7 @@ function PostsPage() {
                 <ImagePicker
                   value={draft.cover}
                   label="capa"
-                  fileName={draft.title || "capa"}
+                  fileName={editing?.title || draft.title || "capa"}
                   onChange={(cover) => setDraft({ ...draft, cover })}
                 />
               </div>
