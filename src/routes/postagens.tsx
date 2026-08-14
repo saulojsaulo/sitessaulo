@@ -38,11 +38,15 @@ import { useStore } from "@/lib/store";
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/postagens")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    status: typeof search.status === "string" ? search.status : undefined,
-    blog: typeof search.blog === "string" ? search.blog : undefined,
-    categoria: typeof search.categoria === "string" ? search.categoria : undefined,
-  }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { status?: string; blog?: string; categoria?: string } => {
+    const out: { status?: string; blog?: string; categoria?: string } = {};
+    if (typeof search["status"] === "string") out.status = search["status"];
+    if (typeof search["blog"] === "string") out.blog = search["blog"];
+    if (typeof search["categoria"] === "string") out.categoria = search["categoria"];
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "Postagens — PostFlow" },
