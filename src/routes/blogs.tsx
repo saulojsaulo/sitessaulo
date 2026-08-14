@@ -286,7 +286,7 @@ function BlogsPage() {
                                   search={
                                     g.status
                                       ? { blog: blog.id, status: g.status }
-                                      : { blog: blog.id, categoria: g.catId }
+                                      : { blog: blog.id, categoria: g.catId ?? "none" }
                                   }
                                   className="text-xs text-muted-foreground hover:text-primary"
                                 >
