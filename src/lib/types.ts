@@ -50,3 +50,36 @@ export const BLOG_COLORS = [
   "oklch(0.78 0.16 70)",
   "oklch(0.62 0.2 340)",
 ];
+
+/** Domínios com painel WordPress disponível em /wp-admin */
+export const WP_ADMIN_DOMAINS = [
+  "ailovepdf.com.br",
+  "smallpdf.com.br",
+  "moneypress.com.br",
+  "cnpjbusca.com",
+  "valorfipe.com",
+  "hinarioccb.com",
+  "bibliaonlinecompleta.com.br",
+  "curiosohein.com",
+  "issoeincrivel.com",
+  "todogostoso.com",
+];
+
+const normalizeDomain = (url: string) =>
+  url
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+
+export function siteUrl(url: string) {
+  const d = normalizeDomain(url);
+  return d ? `https://${d}` : "";
+}
+
+export function wpAdminUrl(url: string) {
+  const d = normalizeDomain(url);
+  if (!d) return "";
+  return WP_ADMIN_DOMAINS.includes(d) ? `https://${d}/wp-admin` : "";
+}
