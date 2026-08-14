@@ -38,6 +38,15 @@ import { useStore } from "@/lib/store";
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/postagens")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { status?: string; blog?: string; categoria?: string } => {
+    const out: { status?: string; blog?: string; categoria?: string } = {};
+    if (typeof search["status"] === "string") out.status = search["status"];
+    if (typeof search["blog"] === "string") out.blog = search["blog"];
+    if (typeof search["categoria"] === "string") out.categoria = search["categoria"];
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "Postagens — PostFlow" },
@@ -72,6 +81,7 @@ const buildStructurePrompt = (title: string) =>
   `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\n\nPara cada seção da estrutura (título + subtítulos), enumere cada seção, título é "1" por exemplo e Subtítulo "1.1". Adicione acima do título da sessão o seguinte prompt — lembre-se, o prompt abaixo vai acima do título da sessão, e não dos subtítulos:\n"Gere o texto para a seção do blog (na frente do Título adicione "##" e na frente de cada subtítulo adicione "###":"`;
 
 function PostsPage() {
+  const search = Route.useSearch();
   const {
     blogs,
     categories,
@@ -87,9 +97,9 @@ function PostsPage() {
   const [editing, setEditing] = useState<Post | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
 
-  const [blogFilter, setBlogFilter] = useState("all");
-  const [catFilter, setCatFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
+  const [catFilter, setCatFilter] = useState(search.categoria ?? "all");
+  const [statusFilter, setStatusFilter] = useState(search.status ?? "all");
   const [tagFilter, setTagFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("date-desc");
@@ -101,7 +111,9 @@ function PostsPage() {
     const q = query.trim().toLowerCase();
     const list = posts.filter((p) => {
       if (blogFilter !== "all" && p.blogId !== blogFilter) return false;
-      if (catFilter !== "all" && p.categoryId !== catFilter) return false;
+      if (catFilter === "none") {
+        if (p.categoryId) return false;
+      } else if (catFilter !== "all" && p.categoryId !== catFilter) return false;
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (tagFilter !== "all" && !p.tags.includes(tagFilter)) return false;
       if (q) {
