@@ -9,7 +9,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { FileText, FolderTree, Newspaper, Plus, Rocket, CalendarClock, PenLine } from "lucide-react";
+import {
+  FileText,
+  FolderTree,
+  Newspaper,
+  Plus,
+  Rocket,
+  CalendarClock,
+  PenLine,
+  ListTree,
+  CheckCircle2,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
@@ -143,6 +154,8 @@ function Dashboard() {
             {(
               [
                 ["rascunho", PenLine],
+                ["estrutura", ListTree],
+                ["artigo_completo", CheckCircle2],
                 ["agendado", CalendarClock],
                 ["publicado", Rocket],
               ] as const
@@ -150,13 +163,22 @@ function Dashboard() {
               const total = byStatus[status];
               const pct = posts.length ? Math.round((total / posts.length) * 100) : 0;
               return (
-                <div key={status}>
+                <Link
+                  key={status}
+                  to="/postagens"
+                  search={{ status }}
+                  title={`Ir para as postagens com status ${status}`}
+                  className="group block rounded-lg p-1.5 transition-colors hover:bg-accent/60"
+                >
                   <div className="mb-1.5 flex items-center justify-between text-xs">
                     <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                       <Icon className="size-3.5" />
                       <StatusBadge status={status} />
                     </span>
-                    <span className="font-medium">{total}</span>
+                    <span className="inline-flex items-center gap-1 font-medium">
+                      {total}
+                      <ChevronRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-70" />
+                    </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
@@ -164,7 +186,7 @@ function Dashboard() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
