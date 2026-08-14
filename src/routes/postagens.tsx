@@ -38,6 +38,11 @@ import { useStore } from "@/lib/store";
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/postagens")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+    blog: typeof search.blog === "string" ? search.blog : undefined,
+    categoria: typeof search.categoria === "string" ? search.categoria : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Postagens — PostFlow" },
@@ -72,6 +77,7 @@ const buildStructurePrompt = (title: string) =>
   `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\n\nPara cada seção da estrutura (título + subtítulos), enumere cada seção, título é "1" por exemplo e Subtítulo "1.1". Adicione acima do título da sessão o seguinte prompt — lembre-se, o prompt abaixo vai acima do título da sessão, e não dos subtítulos:\n"Gere o texto para a seção do blog (na frente do Título adicione "##" e na frente de cada subtítulo adicione "###":"`;
 
 function PostsPage() {
+  const search = Route.useSearch();
   const {
     blogs,
     categories,
@@ -87,9 +93,9 @@ function PostsPage() {
   const [editing, setEditing] = useState<Post | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
 
-  const [blogFilter, setBlogFilter] = useState("all");
-  const [catFilter, setCatFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
+  const [catFilter, setCatFilter] = useState(search.categoria ?? "all");
+  const [statusFilter, setStatusFilter] = useState(search.status ?? "all");
   const [tagFilter, setTagFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("date-desc");
