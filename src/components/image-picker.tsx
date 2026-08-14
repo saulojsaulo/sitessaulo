@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { Download, ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -7,16 +7,71 @@ interface Props {
   onChange: (dataUrl: string | undefined) => void;
   label?: string;
   aspect?: "wide" | "square";
+  fileName?: string;
 }
 
-export function ImagePicker({ value, onChange, label = "Imagem", aspect = "wide" }: Props) {
+const slug = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "imagem";
+
+const toWebp = (src: string, quality = 0.92) =>
+  new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("canvas"));
+      ctx.drawImage(img, 0, 0);
+      const out = canvas.toDataURL("image/webp", quality);
+      resolve(out.startsWith("data:image/webp") ? out : src);
+    };
+    img.onerror = () => reject(new Error("load"));
+    img.src = src;
+  });
+
+export function ImagePicker({
+  value,
+  onChange,
+  label = "Imagem",
+  aspect = "wide",
+  fileName,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const pick = (file: File | undefined) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => onChange(String(reader.result));
+    reader.onload = async () => {
+      const src = String(reader.result);
+      try {
+        onChange(await toWebp(src));
+      } catch {
+        onChange(src);
+      }
+    };
     reader.readAsDataURL(file);
+  };
+
+  const download = async () => {
+    if (!value) return;
+    let href = value;
+    try {
+      href = await toWebp(value);
+    } catch {
+      /* mantém original */
+    }
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `${slug(fileName ?? label)}.webp`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   return (
@@ -40,6 +95,9 @@ export function ImagePicker({ value, onChange, label = "Imagem", aspect = "wide"
           <div className="absolute inset-0 flex items-center justify-center gap-2 bg-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
             <Button type="button" size="sm" onClick={() => inputRef.current?.click()}>
               Trocar
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={download}>
+              <Download className="size-4" />
             </Button>
             <Button
               type="button"
