@@ -1,7 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Globe, Pencil, Plus, Trash2, Newspaper, FolderTree, FileText } from "lucide-react";
+import {
+  Globe,
+  Pencil,
+  Plus,
+  Trash2,
+  Newspaper,
+  FolderTree,
+  FileText,
+  ChevronRight,
+  ExternalLink,
+  LogIn,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +27,16 @@ import {
 } from "@/components/ui/dialog";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { EmptyState, PageHeader } from "@/components/ui-bits";
+import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
-import { BLOG_COLORS, type Blog } from "@/lib/types";
+import {
+  BLOG_COLORS,
+  STATUS_LABEL,
+  siteUrl,
+  wpAdminUrl,
+  type Blog,
+  type PostStatus,
+} from "@/lib/types";
 
 export const Route = createFileRoute("/blogs")({
   head: () => ({
@@ -51,6 +69,8 @@ function BlogsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Blog | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [groupBy, setGroupBy] = useState<"status" | "categoria">("status");
 
   const startCreate = () => {
     setEditing(null);
