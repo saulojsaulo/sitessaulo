@@ -334,9 +334,17 @@ function PostsPage() {
               onClick={() => startEdit(p)}
               className="surface group flex cursor-pointer items-center gap-3 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
             >
-              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
-                <FileText className="size-4" />
-              </div>
+              {p.cover ? (
+                <img
+                  src={p.cover}
+                  alt={p.title}
+                  className="size-9 shrink-0 rounded-lg object-cover ring-1 ring-border"
+                />
+              ) : (
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+                  <FileText className="size-4" />
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate font-semibold">{p.title}</h2>
