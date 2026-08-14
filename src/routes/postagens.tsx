@@ -111,7 +111,9 @@ function PostsPage() {
     const q = query.trim().toLowerCase();
     const list = posts.filter((p) => {
       if (blogFilter !== "all" && p.blogId !== blogFilter) return false;
-      if (catFilter !== "all" && p.categoryId !== catFilter) return false;
+      if (catFilter === "none") {
+        if (p.categoryId) return false;
+      } else if (catFilter !== "all" && p.categoryId !== catFilter) return false;
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (tagFilter !== "all" && !p.tags.includes(tagFilter)) return false;
       if (q) {
