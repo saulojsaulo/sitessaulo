@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FolderTree, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,16 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState, PageHeader } from "@/components/ui-bits";
+import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import {
+  daysAgo,
+  iso,
+  matchPage,
+  propertyIdFor,
+  useBlogProperties,
+  useGa4Summaries,
+} from "@/lib/use-ga4";
 import type { Category } from "@/lib/types";
 
 export const Route = createFileRoute("/categorias")({
@@ -45,6 +54,26 @@ function CategoriesPage() {
   const [description, setDescription] = useState("");
 
   const list = categories.filter((c) => c.blogId === activeBlog?.id);
+
+  const gaProps = useBlogProperties();
+  const gaIds = (gaProps.data ?? [])
+    .map((p) => p.ga4_property_id.trim())
+    .filter((id) => id !== "");
+  const gaSummaries = useGa4Summaries(gaIds, daysAgo(28), iso(new Date()));
+
+  /** categoryId -> soma de visualizações (GA4, 28 dias) das postagens da categoria */
+  const viewsByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    const pid = propertyIdFor(gaProps.data, activeBlog);
+    const summary = pid ? (gaSummaries.data ?? []).find((s) => s.propertyId === pid) : undefined;
+    if (!summary?.ok || summary.topPages.length === 0) return map;
+    for (const p of posts) {
+      if (!p.categoryId || p.blogId !== activeBlog?.id) continue;
+      const hit = matchPage(summary.topPages, p.title);
+      if (hit) map.set(p.categoryId, (map.get(p.categoryId) ?? 0) + hit.views);
+    }
+    return map;
+  }, [posts, activeBlog, gaProps.data, gaSummaries.data]);
 
   const startCreate = () => {
     setEditing(null);
@@ -121,6 +150,7 @@ function CategoriesPage() {
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((c) => {
             const count = posts.filter((p) => p.categoryId === c.id).length;
+            const views = viewsByCategory.get(c.id) ?? 0;
             return (
               <div
                 key={c.id}
@@ -141,6 +171,7 @@ function CategoriesPage() {
                 <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-medium text-primary">
                   {count}
                 </span>
+                {views > 0 ? <ViewsBadge views={views} /> : null}
                 <Button size="icon" variant="ghost" className="size-8" onClick={() => startEdit(c)}>
                   <Pencil className="size-4" />
                 </Button>
