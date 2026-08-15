@@ -45,3 +45,38 @@ alter table public.posts enable row level security;
 create policy "public access blogs" on public.blogs for all using (true) with check (true);
 create policy "public access categories" on public.categories for all using (true) with check (true);
 create policy "public access posts" on public.posts for all using (true) with check (true);
+-- ==========================================================
+-- Analytics (GA4): de-para blog -> GA4 property id
+-- ==========================================================
+create table if not exists public.blog_properties (
+  id uuid primary key default gen_random_uuid(),
+  blog_name text not null,
+  ga4_property_id text not null default '',
+  favicon_url text,
+  created_at timestamptz not null default now()
+);
+
+grant select, insert, update, delete on public.blog_properties to anon, authenticated;
+grant all on public.blog_properties to service_role;
+
+alter table public.blog_properties enable row level security;
+create policy "public access blog_properties" on public.blog_properties
+  for all using (true) with check (true);
+
+insert into public.blog_properties (blog_name, ga4_property_id, favicon_url)
+select v.blog_name, '', 'https://www.google.com/s2/favicons?domain=' || v.blog_name || '&sz=64'
+from (values
+  ('ailovepdf.com.br'),
+  ('smallpdf.com.br'),
+  ('moneypress.com.br'),
+  ('cnpjbusca.com'),
+  ('valorfipe.com'),
+  ('hinarioccb.com'),
+  ('bibliaonlinecompleta.com.br'),
+  ('curiosohein.com'),
+  ('issoeincrivel.com'),
+  ('todogostoso.com')
+) as v(blog_name)
+where not exists (
+  select 1 from public.blog_properties p where p.blog_name = v.blog_name
+);
