@@ -34,7 +34,17 @@ import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
+import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import {
+  daysAgo,
+  iso,
+  matchPage,
+  propertyIdFor,
+  useBlogProperties,
+  useGa4Summaries,
+  type PageStat,
+} from "@/lib/use-ga4";
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/postagens")({
@@ -106,6 +116,30 @@ function PostsPage() {
 
   const blogName = (id: string) => blogs.find((b) => b.id === id)?.name ?? "—";
   const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
+
+  const gaProps = useBlogProperties();
+  const gaIds = (gaProps.data ?? [])
+    .map((p) => p.ga4_property_id.trim())
+    .filter((id) => id !== "");
+  const gaSummaries = useGa4Summaries(gaIds, daysAgo(28), iso(new Date()));
+
+  /** blogId -> páginas mais lidas no GA4 (28 dias) */
+  const pagesByBlog = useMemo(() => {
+    const map = new Map<string, PageStat[]>();
+    for (const blog of blogs) {
+      const pid = propertyIdFor(gaProps.data, blog);
+      if (!pid) continue;
+      const summary = (gaSummaries.data ?? []).find((s) => s.propertyId === pid);
+      if (summary?.ok) map.set(blog.id, summary.topPages);
+    }
+    return map;
+  }, [blogs, gaProps.data, gaSummaries.data]);
+
+  const viewsFor = (post: Post) => {
+    const pages = pagesByBlog.get(post.blogId);
+    if (!pages || pages.length === 0) return null;
+    return matchPage(pages, post.title);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -349,6 +383,10 @@ function PostsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate font-semibold">{p.title}</h2>
                   <StatusBadge status={p.status} />
+                  {(() => {
+                    const hit = viewsFor(p);
+                    return hit ? <ViewsBadge views={hit.views} /> : null;
+                  })()}
                 </div>
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                   <span>{blogName(p.blogId)}</span>
