@@ -37,3 +37,11 @@ export interface PostRow {
   cover: string | null;
   created_at: string;
 }
+
+export interface BlogPropertyRow {
+  id: string;
+  blog_name: string;
+  ga4_property_id: string;
+  favicon_url: string | null;
+  created_at: string;
+}

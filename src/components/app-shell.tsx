@@ -4,6 +4,7 @@ import {
   Newspaper,
   FolderTree,
   FileText,
+  BarChart3,
   Moon,
   Sun,
   ChevronsUpDown,
@@ -43,6 +44,7 @@ const items = [
   { title: "Blogs", url: "/blogs", icon: Newspaper },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Postagens", url: "/postagens", icon: FileText },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ] as const;
 
 function BlogSwitcher() {
