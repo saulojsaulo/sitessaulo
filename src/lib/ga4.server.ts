@@ -114,6 +114,43 @@ export async function batchRunReports(
   const text = await res.text();
   if (!res.ok) {
     console.error(`GA4 batchRunReports falhou [${res.status}]: ${text}`);
+    throw new Error(explainError(res.status, text, propertyId));
+  }
+  return (JSON.parse(text) as { reports?: GaReport[] }).reports ?? [];
+}
+
+/** A API aceita no máximo 5 relatórios por batch — divide automaticamente. */
+export async function runReports(propertyId: string, requests: unknown[]): Promise<GaReport[]> {
+  const chunks: unknown[][] = [];
+  for (let i = 0; i < requests.length; i += 5) chunks.push(requests.slice(i, i + 5));
+  const results = await Promise.all(chunks.map((c) => batchRunReports(propertyId, c)));
+  return results.flat();
+}
+
+export async function runRealtimeReport(
+  propertyId: string,
+  request: unknown,
+): Promise<GaReport> {
+  const token = await getAccessToken();
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(
+      propertyId,
+    )}:runRealtimeReport`,
+    {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(request),
+    },
+  );
+  const text = await res.text();
+  if (!res.ok) {
+    console.error(`GA4 runRealtimeReport falhou [${res.status}]: ${text}`);
+    throw new Error(explainError(res.status, text, propertyId));
+  }
+  return JSON.parse(text) as GaReport;
+}
+
+function explainError(status: number, text: string, propertyId: string) {
     let detail = text.slice(0, 300);
     try {
       const parsed = JSON.parse(text) as { error?: { message?: string } };
@@ -121,17 +158,15 @@ export async function batchRunReports(
     } catch {
       /* mantém o texto bruto */
     }
-    if (res.status === 403 && /has not been used in project|is disabled/i.test(detail)) {
+  if (status === 403 && /has not been used in project|is disabled/i.test(detail)) {
       detail =
         "A Google Analytics Data API está desativada no projeto do Google Cloud da sua Service Account. Ative em console.cloud.google.com > APIs e Serviços > Google Analytics Data API e aguarde alguns minutos.";
-    } else if (res.status === 403) {
+  } else if (status === 403) {
       detail = `Sem permissão nesta propriedade GA4. Adicione o e-mail da Service Account como Leitor na propriedade. (${detail})`;
-    } else if (res.status === 404) {
+  } else if (status === 404) {
       detail = `Property ID ${propertyId} não encontrado no GA4.`;
     }
-    throw new Error(detail);
-  }
-  return (JSON.parse(text) as { reports?: GaReport[] }).reports ?? [];
+  return detail;
 }
 
 export const num = (v?: string) => {

@@ -28,7 +28,16 @@ import {
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
+import { Delta, LiveDot, Sparkline } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import {
+  daysAgo,
+  fmtInt,
+  iso,
+  propertyIdFor,
+  useBlogProperties,
+  useGa4Summaries,
+} from "@/lib/use-ga4";
 import {
   BLOG_COLORS,
   STATUS_LABEL,
@@ -71,6 +80,18 @@ function BlogsPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [groupBy, setGroupBy] = useState<"status" | "categoria">("status");
+
+  const gaProps = useBlogProperties();
+  const gaIds = (gaProps.data ?? [])
+    .map((p) => p.ga4_property_id.trim())
+    .filter((id) => id !== "");
+  const gaSummaries = useGa4Summaries(gaIds, daysAgo(28), iso(new Date()));
+  const statsFor = (blog: Blog) => {
+    const pid = propertyIdFor(gaProps.data, blog);
+    if (!pid) return null;
+    const s = (gaSummaries.data ?? []).find((x) => x.propertyId === pid);
+    return s?.ok ? s : null;
+  };
 
   const startCreate = () => {
     setEditing(null);
@@ -185,6 +206,23 @@ function BlogsPage() {
                         <FileText className="size-3.5" /> {blogPosts.length}
                       </span>
                     </span>
+                    {(() => {
+                      const s = statsFor(blog);
+                      if (!s) return null;
+                      return (
+                        <span className="hidden items-center gap-3 text-xs md:flex">
+                          <Sparkline values={s.timeseries.map((t) => t.sessions)} />
+                          <span
+                            className="tabular-nums font-medium"
+                            title="Sessões nos últimos 28 dias"
+                          >
+                            {fmtInt(s.kpis.sessions)}
+                          </span>
+                          <Delta current={s.kpis.sessions} previous={s.prevKpis.sessions} />
+                          <LiveDot users={s.activeNow} />
+                        </span>
+                      );
+                    })()}
                   </button>
                   <div className="flex items-center gap-1.5">
                     {site ? (

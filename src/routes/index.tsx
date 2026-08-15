@@ -23,7 +23,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
+import { Delta, LiveDot, Sparkline } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import {
+  daysAgo,
+  fmtInt,
+  fmtPct,
+  iso,
+  propertyIdFor,
+  useBlogProperties,
+  useGa4Summaries,
+} from "@/lib/use-ga4";
 import type { PostStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/")({
@@ -106,6 +116,39 @@ function Dashboard() {
     [posts],
   );
 
+  const gaProps = useBlogProperties();
+  const gaIds = (gaProps.data ?? [])
+    .map((p) => p.ga4_property_id.trim())
+    .filter((id) => id !== "");
+  const gaSummaries = useGa4Summaries(gaIds, daysAgo(28), iso(new Date()));
+
+  const traffic = useMemo(() => {
+    const list = (gaSummaries.data ?? []).filter((s) => s.ok);
+    if (list.length === 0) return null;
+    const sessions = list.reduce((a, s) => a + s.kpis.sessions, 0);
+    const prevSessions = list.reduce((a, s) => a + s.prevKpis.sessions, 0);
+    const views = list.reduce((a, s) => a + s.kpis.screenPageViews, 0);
+    const users = list.reduce((a, s) => a + s.kpis.activeUsers, 0);
+    const activeNow = list.reduce((a, s) => a + s.activeNow, 0);
+    const engagement = sessions
+      ? list.reduce((a, s) => a + s.kpis.engagementRate * s.kpis.sessions, 0) / sessions
+      : 0;
+    const byDate = new Map<string, number>();
+    for (const s of list)
+      for (const t of s.timeseries) byDate.set(t.date, (byDate.get(t.date) ?? 0) + t.sessions);
+    const spark = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, v]) => v);
+    const perBlog = blogs
+      .map((b) => {
+        const pid = propertyIdFor(gaProps.data, b);
+        const s = pid ? list.find((x) => x.propertyId === pid) : undefined;
+        return s ? { blog: b, summary: s } : null;
+      })
+      .filter((x): x is { blog: (typeof blogs)[number]; summary: (typeof list)[number] } => x !== null)
+      .sort((a, b) => b.summary.kpis.sessions - a.summary.kpis.sessions)
+      .slice(0, 5);
+    return { sessions, prevSessions, views, users, activeNow, engagement, spark, perBlog };
+  }, [gaSummaries.data, blogs, gaProps.data]);
+
   if (hydrated && blogs.length === 0) {
     return (
       <>
@@ -146,6 +189,57 @@ function Dashboard() {
         <StatCard label="Postagens" value={posts.length} icon={<FileText className="size-5" />} />
         <StatCard label="Publicadas" value={byStatus.publicado} icon={<Rocket className="size-5" />} />
       </div>
+
+      {traffic ? (
+        <div className="surface mt-4 p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Tráfego (últimos 28 dias)</h2>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="inline-flex items-center gap-1.5">
+                <LiveDot users={traffic.activeNow} /> online agora
+              </span>
+              <Link to="/analytics" className="text-primary hover:underline">
+                Ver Analytics →
+              </Link>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Sessões</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold tracking-tight">{fmtInt(traffic.sessions)}</p>
+                <Delta current={traffic.sessions} previous={traffic.prevSessions} />
+              </div>
+              <Sparkline values={traffic.spark} width={140} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Usuários</p>
+              <p className="text-2xl font-bold tracking-tight">{fmtInt(traffic.users)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Visualizações</p>
+              <p className="text-2xl font-bold tracking-tight">{fmtInt(traffic.views)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Engajamento</p>
+              <p className="text-2xl font-bold tracking-tight">{fmtPct(traffic.engagement)}</p>
+            </div>
+          </div>
+          {traffic.perBlog.length > 0 ? (
+            <ul className="mt-4 divide-y border-t text-xs">
+              {traffic.perBlog.map(({ blog, summary }) => (
+                <li key={blog.id} className="flex items-center gap-3 py-2">
+                  <span className="min-w-0 flex-1 truncate font-medium">{blog.name}</span>
+                  <Sparkline values={summary.timeseries.map((t) => t.sessions)} />
+                  <span className="w-16 text-right tabular-nums">{fmtInt(summary.kpis.sessions)}</span>
+                  <Delta current={summary.kpis.sessions} previous={summary.prevKpis.sessions} />
+                  <LiveDot users={summary.activeNow} />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="surface p-5">
