@@ -114,7 +114,22 @@ export async function batchRunReports(
   const text = await res.text();
   if (!res.ok) {
     console.error(`GA4 batchRunReports falhou [${res.status}]: ${text}`);
-    throw new Error(`GA4 [${res.status}]: ${text.slice(0, 400)}`);
+    let detail = text.slice(0, 300);
+    try {
+      const parsed = JSON.parse(text) as { error?: { message?: string } };
+      if (parsed.error?.message) detail = parsed.error.message;
+    } catch {
+      /* mantém o texto bruto */
+    }
+    if (res.status === 403 && /has not been used in project|is disabled/i.test(detail)) {
+      detail =
+        "A Google Analytics Data API está desativada no projeto do Google Cloud da sua Service Account. Ative em console.cloud.google.com > APIs e Serviços > Google Analytics Data API e aguarde alguns minutos.";
+    } else if (res.status === 403) {
+      detail = `Sem permissão nesta propriedade GA4. Adicione o e-mail da Service Account como Leitor na propriedade. (${detail})`;
+    } else if (res.status === 404) {
+      detail = `Property ID ${propertyId} não encontrado no GA4.`;
+    }
+    throw new Error(detail);
   }
   return (JSON.parse(text) as { reports?: GaReport[] }).reports ?? [];
 }
