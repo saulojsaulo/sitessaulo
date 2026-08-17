@@ -90,6 +90,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 const buildStructurePrompt = (title: string) =>
   `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\n\nPara cada seção da estrutura (título + subtítulos), enumere cada seção, título é "1" por exemplo e Subtítulo "1.1". Adicione acima do título da sessão o seguinte prompt — lembre-se, o prompt abaixo vai acima do título da sessão, e não dos subtítulos:\n"Gere o texto para a seção do blog (na frente do Título adicione "##" e na frente de cada subtítulo adicione "###":"`;
 
+const buildCoverImagePrompt = (title: string, category: string) =>
+  `Crie uma imagem fotográfica profissional e realista, no estilo de banco de imagens premium (como Unsplash ou Shutterstock), para ser usada como imagem de destaque de um artigo de blog.\n\nTema do artigo: "${title}"\n\nCategoria: ${category}\n\nRequisitos obrigatórios:\n\n- Dimensão: 600x400 pixels (proporção 3:2, horizontal)\n\n- Estilo: fotografia realista, com iluminação natural, profundidade de campo e textura autêntica — como se tivesse sido tirada com uma câmera profissional\n\n- NÃO deve parecer gerada por IA: evite texturas plásticas, simetria perfeita demais, pele/objetos "lisos" artificiais, mãos ou rostos distorcidos, ou composições genéricas típicas de IA\n\n- NÃO incluir nenhum texto, letras, números, logotipos, marcas d'água ou elementos gráficos com informação escrita\n\n- NÃO incluir elementos sensíveis, violentos, sexuais, chocantes, discriminatórios ou controversos, pois o site é monetizado com Google AdSense e precisa seguir as políticas de conteúdo do Google\n\n- Composição limpa, com foco claro no assunto principal relacionado ao título e à categoria\n\n- Cores equilibradas e naturais, adequadas para uso editorial/jornalístico\n\n- Evitar qualquer referência a marcas registradas, personagens protegidos por direitos autorais ou pessoas reais identificáveis\n\nGere uma imagem que represente visualmente o conceito central do título de forma direta, profissional e adequada para um artigo de blog nessa categoria.`;
+
 function PostsPage() {
   const search = Route.useSearch();
   const {
@@ -222,6 +225,22 @@ function PostsPage() {
   };
 
   const draftCategories = categories.filter((c) => c.blogId === draft?.blogId);
+
+  const generateCoverPrompt = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar o prompt");
+      return;
+    }
+    const text = buildCoverImagePrompt(title, catName(draft.categoryId));
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Prompt da capa copiado!");
+    } catch {
+      toast.error("Não foi possível copiar o prompt");
+    }
+  };
 
   const generateStructurePrompt = async () => {
     if (!draft) return;
@@ -535,6 +554,15 @@ function PostsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Imagem de capa</Label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full gap-2 sm:w-auto"
+                  disabled={!draft.title.trim()}
+                  onClick={generateCoverPrompt}
+                >
+                  <Sparkles className="size-4" /> Gerar Prompt Imagem de Capa
+                </Button>
                 <ImagePicker
                   value={draft.cover}
                   label="capa"
