@@ -226,6 +226,22 @@ function PostsPage() {
 
   const draftCategories = categories.filter((c) => c.blogId === draft?.blogId);
 
+  const generateCoverPrompt = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar o prompt");
+      return;
+    }
+    const text = buildCoverImagePrompt(title, catName(draft.categoryId));
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Prompt da capa copiado!");
+    } catch {
+      toast.error("Não foi possível copiar o prompt");
+    }
+  };
+
   const generateStructurePrompt = async () => {
     if (!draft) return;
     const title = draft.title.trim();
@@ -538,6 +554,15 @@ function PostsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Imagem de capa</Label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full gap-2 sm:w-auto"
+                  disabled={!draft.title.trim()}
+                  onClick={generateCoverPrompt}
+                >
+                  <Sparkles className="size-4" /> Gerar Prompt Imagem de Capa
+                </Button>
                 <ImagePicker
                   value={draft.cover}
                   label="capa"
