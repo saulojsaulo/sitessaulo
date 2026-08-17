@@ -385,71 +385,75 @@ function PostsPage() {
             <article
               key={p.id}
               onClick={() => startEdit(p)}
-              className="surface group flex cursor-pointer items-center gap-3 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
+              className="surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr]"
             >
-              {p.cover ? (
-                <img
-                  src={p.cover}
-                  alt={p.title}
-                  className="size-9 shrink-0 rounded-lg object-cover ring-1 ring-border"
-                />
-              ) : (
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
-                  <FileText className="size-4" />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate font-semibold">{p.title}</h2>
-                  <StatusBadge status={p.status} />
-                  {(() => {
-                    const hit = viewsFor(p);
-                    return hit ? <ViewsBadge views={hit.views} /> : null;
-                  })()}
-                </div>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  <span>{blogName(p.blogId)}</span>
-                  <span>·</span>
-                  <span>{catName(p.categoryId)}</span>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1">
-                    <CalendarDays className="size-3" />
-                    {new Date(`${p.publishDate}T00:00:00`).toLocaleDateString("pt-BR")}
-                  </span>
-                </p>
-                {p.tags.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {p.tags.slice(0, 4).map((t) => (
-                      <TagChip key={t} label={t} />
-                    ))}
-                    {p.tags.length > 4 && (
-                      <span className="self-center text-xs text-muted-foreground">
-                        +{p.tags.length - 4}
-                      </span>
-                    )}
+              <div className="relative h-full min-h-[96px] sm:min-h-[120px]">
+                {p.cover ? (
+                  <img
+                    src={p.cover}
+                    alt={p.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center bg-accent text-accent-foreground">
+                    <FileText className="size-8" />
                   </div>
                 )}
               </div>
-              <div
-                className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button size="icon" variant="ghost" onClick={() => startEdit(p)}>
-                  <Pencil className="size-4" />
-                </Button>
-                <ConfirmDelete
-                  title={`Excluir "${p.title}"?`}
-                  description="Esta ação não pode ser desfeita."
-                  onConfirm={() => {
-                    removePost(p.id);
-                    toast.success("Postagem excluída");
-                  }}
-                  trigger={
-                    <Button size="icon" variant="ghost" className="text-destructive">
-                      <Trash2 className="size-4" />
-                    </Button>
-                  }
-                />
+              <div className="flex min-w-0 items-center justify-between gap-3 p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="truncate font-semibold">{p.title}</h2>
+                    <StatusBadge status={p.status} />
+                    {(() => {
+                      const hit = viewsFor(p);
+                      return hit ? <ViewsBadge views={hit.views} /> : null;
+                    })()}
+                  </div>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    <span>{blogName(p.blogId)}</span>
+                    <span>·</span>
+                    <span>{catName(p.categoryId)}</span>
+                    <span>·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <CalendarDays className="size-3" />
+                      {new Date(`${p.publishDate}T00:00:00`).toLocaleDateString("pt-BR")}
+                    </span>
+                  </p>
+                  {p.tags.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {p.tags.slice(0, 4).map((t) => (
+                        <TagChip key={t} label={t} />
+                      ))}
+                      {p.tags.length > 4 && (
+                        <span className="self-center text-xs text-muted-foreground">
+                          +{p.tags.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div
+                  className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button size="icon" variant="ghost" onClick={() => startEdit(p)}>
+                    <Pencil className="size-4" />
+                  </Button>
+                  <ConfirmDelete
+                    title={`Excluir "${p.title}"?`}
+                    description="Esta ação não pode ser desfeita."
+                    onConfirm={() => {
+                      removePost(p.id);
+                      toast.success("Postagem excluída");
+                    }}
+                    trigger={
+                      <Button size="icon" variant="ghost" className="text-destructive">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    }
+                  />
+                </div>
               </div>
             </article>
           ))}
