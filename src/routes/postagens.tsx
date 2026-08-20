@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -93,7 +93,47 @@ const buildStructurePrompt = (title: string) =>
 const buildCoverImagePrompt = (title: string, category: string) =>
   `Crie uma imagem fotográfica profissional e realista, no estilo de banco de imagens premium (como Unsplash ou Shutterstock), para ser usada como imagem de destaque de um artigo de blog.\n\nTema do artigo: "${title}"\n\nCategoria: ${category}\n\nRequisitos obrigatórios:\n\n- Dimensão: 600x400 pixels (proporção 3:2, horizontal)\n\n- Estilo: fotografia realista, com iluminação natural, profundidade de campo e textura autêntica — como se tivesse sido tirada com uma câmera profissional\n\n- NÃO deve parecer gerada por IA: evite texturas plásticas, simetria perfeita demais, pele/objetos "lisos" artificiais, mãos ou rostos distorcidos, ou composições genéricas típicas de IA\n\n- NÃO incluir nenhum texto, letras, números, logotipos, marcas d'água ou elementos gráficos com informação escrita\n\n- NÃO incluir elementos sensíveis, violentos, sexuais, chocantes, discriminatórios ou controversos, pois o site é monetizado com Google AdSense e precisa seguir as políticas de conteúdo do Google\n\n- Composição limpa, com foco claro no assunto principal relacionado ao título e à categoria\n\n- Cores equilibradas e naturais, adequadas para uso editorial/jornalístico\n\n- Evitar qualquer referência a marcas registradas, personagens protegidos por direitos autorais ou pessoas reais identificáveis\n\nGere uma imagem que represente visualmente o conceito central do título de forma direta, profissional e adequada para um artigo de blog nessa categoria.`;
 
+/** Miniatura carregada sob demanda (capas base64 são pesadas para vir na listagem). */
+function PostCover({ id, title, cover }: { id: string; title: string; cover?: string | undefined }) {
+  const { loadCover } = useStore();
+  const [src, setSrc] = useState<string | undefined>(cover);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cover) {
+      setSrc(cover);
+      return;
+    }
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect();
+          void loadCover(id).then(setSrc);
+        }
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [id, cover, loadCover]);
+
+  return (
+    <div ref={ref} className="absolute inset-0">
+      {src ? (
+        <img src={src} alt={title} className="h-full w-full object-cover" />
+      ) : (
+        <div className="grid h-full w-full place-items-center bg-accent text-accent-foreground">
+          <FileText className="size-8" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PostsPage() {
+
   const search = Route.useSearch();
   const {
     blogs,
@@ -104,7 +144,9 @@ function PostsPage() {
     addPost,
     updatePost,
     removePost,
+    loadCover,
   } = useStore();
+
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
@@ -206,7 +248,14 @@ function PostsPage() {
       cover: p.cover,
     });
     setOpen(true);
+    if (!p.cover) {
+      void loadCover(p.id).then((cover) => {
+        if (!cover) return;
+        setDraft((d) => (d && !d.cover ? { ...d, cover } : d));
+      });
+    }
   };
+
 
   const save = () => {
     if (!draft) return;
@@ -388,18 +437,9 @@ function PostsPage() {
               className="surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr]"
             >
               <div className="relative h-full min-h-[96px] sm:min-h-[120px]">
-                {p.cover ? (
-                  <img
-                    src={p.cover}
-                    alt={p.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="grid h-full w-full place-items-center bg-accent text-accent-foreground">
-                    <FileText className="size-8" />
-                  </div>
-                )}
+                <PostCover id={p.id} title={p.title} cover={p.cover} />
               </div>
+
               <div className="flex min-w-0 items-center justify-between gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

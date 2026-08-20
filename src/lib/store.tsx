@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -83,9 +84,26 @@ const toPostRow = (p: Post): PostRow => ({
   created_at: p.createdAt,
 });
 
+/** Colunas leves da postagem: `cover` (base64) é carregada sob demanda. */
+const POST_COLUMNS = "id,blog_id,category_id,title,content,tags,status,publish_date,created_at";
+
+const toPostPatch = (patch: Partial<Post>) => {
+  const row: Record<string, unknown> = {};
+  if ("blogId" in patch) row["blog_id"] = patch.blogId;
+  if ("categoryId" in patch) row["category_id"] = patch.categoryId ?? null;
+  if ("title" in patch) row["title"] = patch.title;
+  if ("content" in patch) row["content"] = patch.content;
+  if ("tags" in patch) row["tags"] = patch.tags ?? [];
+  if ("status" in patch) row["status"] = patch.status;
+  if ("publishDate" in patch) row["publish_date"] = patch.publishDate;
+  if ("cover" in patch) row["cover"] = patch.cover ?? null;
+  return row;
+};
+
 function logError(scope: string, error: unknown) {
   if (error) console.error(`[postflow] ${scope}`, error);
 }
+
 
 interface StoreValue extends Data {
   hydrated: boolean;
@@ -100,7 +118,9 @@ interface StoreValue extends Data {
   addPost: (p: Omit<Post, "id" | "createdAt">) => void;
   updatePost: (id: string, patch: Partial<Post>) => void;
   removePost: (id: string) => void;
+  loadCover: (id: string) => Promise<string | undefined>;
   allTags: string[];
+
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -123,7 +143,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [blogsRes, catsRes, postsRes] = await Promise.all([
         supabase.from("blogs").select("*").order("created_at"),
         supabase.from("categories").select("*").order("name"),
-        supabase.from("posts").select("*").order("created_at"),
+        supabase.from("posts").select(POST_COLUMNS).order("created_at"),
       ]);
       logError("load blogs", blogsRes.error);
       logError("load categories", catsRes.error);
@@ -260,18 +280,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePost = useCallback((id: string, patch: Partial<Post>) => {
-    setData((d) => {
-      const next = d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      const row = next.find((p) => p.id === id);
-      if (row)
-        void supabase
-          .from("posts")
-          .update(toPostRow(row))
-          .eq("id", id)
-          .then(({ error }) => logError("update post", error));
-      return { ...d, posts: next };
-    });
+    void supabase
+      .from("posts")
+      .update(toPostPatch(patch))
+      .eq("id", id)
+      .then(({ error }) => logError("update post", error));
+    setData((d) => ({
+      ...d,
+      posts: d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    }));
   }, []);
+
+  const coversRef = useRef(new Map<string, Promise<string | undefined>>());
+
+  const loadCover = useCallback(async (id: string) => {
+    const cached = coversRef.current.get(id);
+    if (cached) return cached;
+    const p = (async () => {
+      const { data: row, error } = await supabase
+        .from("posts")
+        .select("cover")
+        .eq("id", id)
+        .maybeSingle();
+      logError("load cover", error);
+      return ((row as { cover?: string | null } | null)?.cover ?? undefined) || undefined;
+    })();
+    coversRef.current.set(id, p);
+    return p;
+  }, []);
+
+
 
   const removePost = useCallback((id: string) => {
     void supabase
@@ -299,6 +337,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addPost,
       updatePost,
       removePost,
+      loadCover,
       allTags,
     };
   }, [
@@ -314,6 +353,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addPost,
     updatePost,
     removePost,
+    loadCover,
+
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
