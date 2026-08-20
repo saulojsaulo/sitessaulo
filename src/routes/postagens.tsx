@@ -104,7 +104,9 @@ function PostsPage() {
     addPost,
     updatePost,
     removePost,
+    loadCover,
   } = useStore();
+
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
