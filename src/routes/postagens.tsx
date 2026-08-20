@@ -388,18 +388,9 @@ function PostsPage() {
               className="surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr]"
             >
               <div className="relative h-full min-h-[96px] sm:min-h-[120px]">
-                {p.cover ? (
-                  <img
-                    src={p.cover}
-                    alt={p.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="grid h-full w-full place-items-center bg-accent text-accent-foreground">
-                    <FileText className="size-8" />
-                  </div>
-                )}
+                <PostCover id={p.id} title={p.title} cover={p.cover} />
               </div>
+
               <div className="flex min-w-0 items-center justify-between gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
