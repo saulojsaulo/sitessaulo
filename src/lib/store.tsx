@@ -142,7 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [blogsRes, catsRes, postsRes] = await Promise.all([
         supabase.from("blogs").select("*").order("created_at"),
         supabase.from("categories").select("*").order("name"),
-        supabase.from("posts").select("*").order("created_at"),
+        supabase.from("posts").select(POST_COLUMNS).order("created_at"),
       ]);
       logError("load blogs", blogsRes.error);
       logError("load categories", catsRes.error);
