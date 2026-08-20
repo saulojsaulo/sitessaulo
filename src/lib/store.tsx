@@ -279,18 +279,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePost = useCallback((id: string, patch: Partial<Post>) => {
-    setData((d) => {
-      const next = d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      const row = next.find((p) => p.id === id);
-      if (row)
-        void supabase
-          .from("posts")
-          .update(toPostRow(row))
-          .eq("id", id)
-          .then(({ error }) => logError("update post", error));
-      return { ...d, posts: next };
-    });
+    void supabase
+      .from("posts")
+      .update(toPostPatch(patch))
+      .eq("id", id)
+      .then(({ error }) => logError("update post", error));
+    setData((d) => ({
+      ...d,
+      posts: d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    }));
   }, []);
+
+  const coversRef = useRef(new Map<string, Promise<string | undefined>>());
+
+  const loadCover = useCallback(async (id: string) => {
+    const cached = coversRef.current.get(id);
+    if (cached) return cached;
+    const p = supabase
+      .from("posts")
+      .select("cover")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data: row, error }) => {
+        logError("load cover", error);
+        return ((row as { cover?: string | null } | null)?.cover ?? undefined) || undefined;
+      });
+    coversRef.current.set(id, p);
+    return p;
+  }, []);
+
 
   const removePost = useCallback((id: string) => {
     void supabase
