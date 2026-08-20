@@ -352,6 +352,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addPost,
     updatePost,
     removePost,
+    loadCover,
+
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
