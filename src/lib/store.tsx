@@ -83,9 +83,26 @@ const toPostRow = (p: Post): PostRow => ({
   created_at: p.createdAt,
 });
 
+/** Colunas leves da postagem: `cover` (base64) é carregada sob demanda. */
+const POST_COLUMNS = "id,blog_id,category_id,title,content,tags,status,publish_date,created_at";
+
+const toPostPatch = (patch: Partial<Post>) => {
+  const row: Record<string, unknown> = {};
+  if ("blogId" in patch) row["blog_id"] = patch.blogId;
+  if ("categoryId" in patch) row["category_id"] = patch.categoryId ?? null;
+  if ("title" in patch) row["title"] = patch.title;
+  if ("content" in patch) row["content"] = patch.content;
+  if ("tags" in patch) row["tags"] = patch.tags ?? [];
+  if ("status" in patch) row["status"] = patch.status;
+  if ("publishDate" in patch) row["publish_date"] = patch.publishDate;
+  if ("cover" in patch) row["cover"] = patch.cover ?? null;
+  return row;
+};
+
 function logError(scope: string, error: unknown) {
   if (error) console.error(`[postflow] ${scope}`, error);
 }
+
 
 interface StoreValue extends Data {
   hydrated: boolean;
