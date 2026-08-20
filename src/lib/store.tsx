@@ -296,18 +296,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const loadCover = useCallback(async (id: string) => {
     const cached = coversRef.current.get(id);
     if (cached) return cached;
-    const p = supabase
-      .from("posts")
-      .select("cover")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data: row, error }) => {
-        logError("load cover", error);
-        return ((row as { cover?: string | null } | null)?.cover ?? undefined) || undefined;
-      });
+    const p = (async () => {
+      const { data: row, error } = await supabase
+        .from("posts")
+        .select("cover")
+        .eq("id", id)
+        .maybeSingle();
+      logError("load cover", error);
+      return ((row as { cover?: string | null } | null)?.cover ?? undefined) || undefined;
+    })();
     coversRef.current.set(id, p);
     return p;
   }, []);
+
 
 
   const removePost = useCallback((id: string) => {
