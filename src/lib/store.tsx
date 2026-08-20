@@ -117,7 +117,9 @@ interface StoreValue extends Data {
   addPost: (p: Omit<Post, "id" | "createdAt">) => void;
   updatePost: (id: string, patch: Partial<Post>) => void;
   removePost: (id: string) => void;
+  loadCover: (id: string) => Promise<string | undefined>;
   allTags: string[];
+
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
