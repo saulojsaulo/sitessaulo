@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -335,6 +336,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addPost,
       updatePost,
       removePost,
+      loadCover,
       allTags,
     };
   }, [
