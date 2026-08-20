@@ -206,7 +206,14 @@ function PostsPage() {
       cover: p.cover,
     });
     setOpen(true);
+    if (!p.cover) {
+      void loadCover(p.id).then((cover) => {
+        if (!cover) return;
+        setDraft((d) => (d && !d.cover ? { ...d, cover } : d));
+      });
+    }
   };
+
 
   const save = () => {
     if (!draft) return;
