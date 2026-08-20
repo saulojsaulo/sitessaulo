@@ -93,7 +93,47 @@ const buildStructurePrompt = (title: string) =>
 const buildCoverImagePrompt = (title: string, category: string) =>
   `Crie uma imagem fotográfica profissional e realista, no estilo de banco de imagens premium (como Unsplash ou Shutterstock), para ser usada como imagem de destaque de um artigo de blog.\n\nTema do artigo: "${title}"\n\nCategoria: ${category}\n\nRequisitos obrigatórios:\n\n- Dimensão: 600x400 pixels (proporção 3:2, horizontal)\n\n- Estilo: fotografia realista, com iluminação natural, profundidade de campo e textura autêntica — como se tivesse sido tirada com uma câmera profissional\n\n- NÃO deve parecer gerada por IA: evite texturas plásticas, simetria perfeita demais, pele/objetos "lisos" artificiais, mãos ou rostos distorcidos, ou composições genéricas típicas de IA\n\n- NÃO incluir nenhum texto, letras, números, logotipos, marcas d'água ou elementos gráficos com informação escrita\n\n- NÃO incluir elementos sensíveis, violentos, sexuais, chocantes, discriminatórios ou controversos, pois o site é monetizado com Google AdSense e precisa seguir as políticas de conteúdo do Google\n\n- Composição limpa, com foco claro no assunto principal relacionado ao título e à categoria\n\n- Cores equilibradas e naturais, adequadas para uso editorial/jornalístico\n\n- Evitar qualquer referência a marcas registradas, personagens protegidos por direitos autorais ou pessoas reais identificáveis\n\nGere uma imagem que represente visualmente o conceito central do título de forma direta, profissional e adequada para um artigo de blog nessa categoria.`;
 
+/** Miniatura carregada sob demanda (capas base64 são pesadas para vir na listagem). */
+function PostCover({ id, title, cover }: { id: string; title: string; cover?: string }) {
+  const { loadCover } = useStore();
+  const [src, setSrc] = useState<string | undefined>(cover);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cover) {
+      setSrc(cover);
+      return;
+    }
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect();
+          void loadCover(id).then(setSrc);
+        }
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [id, cover, loadCover]);
+
+  return (
+    <div ref={ref} className="absolute inset-0">
+      {src ? (
+        <img src={src} alt={title} className="h-full w-full object-cover" />
+      ) : (
+        <div className="grid h-full w-full place-items-center bg-accent text-accent-foreground">
+          <FileText className="size-8" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PostsPage() {
+
   const search = Route.useSearch();
   const {
     blogs,
