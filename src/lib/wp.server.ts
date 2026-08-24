@@ -34,21 +34,37 @@ interface Creds {
   app_password: string;
 }
 
+/** Rota alternativa (?rest_route=) usada quando o firewall bloqueia /wp-json. */
+function restRouteUrl(siteUrl: string, path: string): string {
+  const [route, query] = path.split("?");
+  const params = new URLSearchParams(query ?? "");
+  params.set("rest_route", `/wp/v2${route}`);
+  return `${siteUrl.trim().replace(/\/+$/, "")}/?${params.toString()}`;
+}
+
 async function wpFetch<T>(
   creds: Creds,
   path: string,
   init: RequestInit = {},
   timeoutMs = 30_000,
+  useRestRoute = false,
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${base(creds.site_url)}${path}`, {
+    const url = useRestRoute
+      ? restRouteUrl(creds.site_url, path)
+      : `${base(creds.site_url)}${path}`;
+    const res = await fetch(url, {
       ...init,
       signal: controller.signal,
       headers: {
         Authorization: authHeader(creds.username, creds.app_password),
         Accept: "application/json",
+        // Alguns servidores com Mod_Security devolvem 406 sem um User-Agent de navegador.
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
         ...(init.headers ?? {}),
       },
     });
@@ -59,7 +75,14 @@ async function wpFetch<T>(
     } catch {
       body = null;
     }
-    if (!res.ok) throw new Error(friendlyError(res.status, body, text));
+    if (!res.ok) {
+      // Firewall (Mod_Security) costuma bloquear /wp-json com 403/406: tenta ?rest_route=.
+      if (!useRestRoute && (res.status === 406 || res.status === 403 || res.status === 418)) {
+        clearTimeout(timer);
+        return wpFetch<T>(creds, path, init, timeoutMs, true);
+      }
+      throw new Error(friendlyError(res.status, body, text));
+    }
     return body as T;
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError")
@@ -80,6 +103,8 @@ function friendlyError(status: number, body: unknown, text: string): string {
   if (code === "rest_no_route")
     return "REST API não encontrada. Ative os links permanentes (permalinks) no WordPress.";
   if (status === 404) return "Endpoint não encontrado — confira a URL do site.";
+  if (status === 406 || /mod_security/i.test(text))
+    return "O firewall do servidor (Mod_Security) bloqueou o envio. Peça à sua hospedagem para liberar as requisições REST (/wp-json/wp/v2/posts e /media) ou desativar as regras de Mod_Security para o seu usuário.";
   return `WordPress [${status}]: ${message || "erro desconhecido"}`;
 }
 
