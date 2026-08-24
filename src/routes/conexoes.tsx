@@ -259,6 +259,10 @@ function ConnectionsPage() {
   const blogFor = (c: WpConnectionRow) =>
     blogs.find((b) => normalizeUrl(b.url) === normalizeUrl(c.site_url) || b.name === c.name) ?? null;
 
+  const connFor = (url: string) =>
+    rows.find((c) => normalizeUrl(c.site_url) === normalizeUrl(url)) ?? null;
+
+
   const startEdit = (c: WpConnectionRow) => {
     setEditing(c);
     setDraft({
