@@ -26,11 +26,34 @@ export const emptyWorkspace: Workspace = { raw: "", sections: [], article: "", m
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
 
+/** Conteúdo antigo (HTML do editor rico) virando texto simples para a aba 1. */
+function htmlToText(html: string) {
+  if (!/<[a-z/][^>]*>/i.test(html)) return html;
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+const legacy = (content: string): Workspace => ({
+  ...emptyWorkspace,
+  raw: htmlToText(content),
+  article: content,
+  manual: content.trim() !== "",
+});
+
 export function parseWorkspace(content: string): Workspace {
   const at = content.lastIndexOf(MARKER_START);
-  if (at === -1) return { ...emptyWorkspace, article: content, manual: content.trim() !== "" };
+  if (at === -1) return legacy(content);
   const end = content.indexOf(MARKER_END, at);
-  if (end === -1) return { ...emptyWorkspace, article: content, manual: content.trim() !== "" };
+  if (end === -1) return legacy(content);
   const article = content.slice(0, at).replace(/\s+$/, "");
   try {
     const json = decodeURIComponent(content.slice(at + MARKER_START.length, end));
