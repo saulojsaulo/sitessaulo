@@ -68,7 +68,10 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   };
 
   const rebuilt = useMemo(() => buildArticle(ws.sections), [ws.sections]);
-  const article = ws.manual ? ws.article : rebuilt;
+  const article = useMemo(
+    () => cleanHeadings(ws.manual ? ws.article : rebuilt),
+    [ws.manual, ws.article, rebuilt],
+  );
 
   const process = () => {
     const { sections, warnings: w } = splitSections(ws.raw);
