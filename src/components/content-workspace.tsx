@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { QuickPublish } from "@/components/quick-publish";
 import {
   buildArticle,
   parseWorkspace,
@@ -30,6 +31,11 @@ interface Props {
   onChange: (content: string) => void;
   /** Muda quando outra postagem é aberta, para recarregar o estado das abas. */
   resetKey: string;
+  /** Dados usados para publicar/agendar o Artigo Pronto no WordPress. */
+  postId?: string | null;
+  title?: string;
+  cover?: string | undefined;
+  tags?: string[] | undefined;
 }
 
 const copy = async (text: string, message: string) => {
@@ -41,7 +47,7 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
@@ -198,6 +204,15 @@ export function ContentWorkspace({ value, onChange, resetKey }: Props) {
             title="Limpar artigo montado?"
             description="O texto final será apagado. As sessões da aba 2 continuam salvas."
             onConfirm={() => commit({ ...ws, article: "", manual: true })}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+          <QuickPublish
+            postId={postId}
+            title={title}
+            article={article}
+            cover={cover}
+            tags={tags}
           />
         </div>
       </TabsContent>
