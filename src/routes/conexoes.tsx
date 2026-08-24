@@ -324,22 +324,31 @@ function ConnectionsPage() {
           )}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="wp-name">Nome/apelido do blog</Label>
-              <Input
-                id="wp-name"
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                placeholder="Blog de Tecnologia"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="wp-url">URL do site</Label>
-              <Input
-                id="wp-url"
-                value={draft.site_url}
-                onChange={(e) => setDraft({ ...draft, site_url: e.target.value })}
-                placeholder="https://meusite.com"
-              />
+              <Label>Blog cadastrado</Label>
+              <Select value={draft.blogId} onValueChange={pickBlog}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um blog do sistema" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBlogs.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name} — {b.url}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {availableBlogs.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Todos os blogs cadastrados já possuem conexão. Cadastre um novo blog em{" "}
+                  <Link to="/blogs" className="text-primary underline">
+                    Blogs
+                  </Link>
+                  .
+                </p>
+              )}
+              {draft.site_url && (
+                <p className="text-xs text-muted-foreground">Site: {draft.site_url}</p>
+              )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
