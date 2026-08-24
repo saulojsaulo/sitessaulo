@@ -357,11 +357,64 @@ function ConnectionsPage() {
         title="Conexões WordPress"
         subtitle={`${rows.length} site(s) conectado(s) via REST API`}
         action={
-          <Button onClick={startCreate} className="gap-2">
+          <Button onClick={() => startCreate()} className="gap-2">
             <Plus className="size-4" /> Nova conexão
           </Button>
         }
       />
+
+      <SetupGuide defaultOpen={rows.length === 0} />
+
+      {blogs.length > 0 && (
+        <div className="surface mb-5 overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-sm font-semibold">
+            <KeyRound className="size-4 text-primary" />
+            Progresso por blog
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
+              {blogs.filter((b) => connFor(b.url)?.status === "conectado").length}/{blogs.length}{" "}
+              conectados
+            </span>
+          </div>
+          <div className="grid gap-2 p-3 sm:grid-cols-2">
+            {blogs.map((b) => {
+              const conn = connFor(b.url);
+              return (
+                <div
+                  key={b.id}
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{b.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{b.url}</p>
+                  </div>
+                  {conn ? (
+                    <StatusPill status={conn.status} />
+                  ) : (
+                    <span className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                      Sem conexão
+                    </span>
+                  )}
+                  <Button variant="ghost" size="sm" className="gap-1.5" asChild>
+                    <a href={appPasswordsUrl(b.url)} target="_blank" rel="noreferrer">
+                      <KeyRound className="size-4" />
+                      <span className="hidden sm:inline">Senhas</span>
+                    </a>
+                  </Button>
+                  {conn ? (
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(conn)}>
+                      <Pencil className="size-4" />
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" size="sm" onClick={() => startCreate(b.id)}>
+                      Conectar
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <EmptyState
@@ -369,11 +422,12 @@ function ConnectionsPage() {
           title="Nenhum site WordPress conectado"
           description="Selecione um dos blogs já cadastrados no sistema e informe usuário e Application Password (WordPress 5.6+) para publicar e agendar direto daqui."
           action={
-            <Button onClick={startCreate} className="mt-2 gap-2">
+            <Button onClick={() => startCreate()} className="mt-2 gap-2">
               <Plus className="size-4" /> Nova conexão
             </Button>
           }
         />
+
       ) : (
         <div className="grid gap-3">
           {rows.map((c) => (
