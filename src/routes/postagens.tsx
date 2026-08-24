@@ -624,9 +624,10 @@ function PostsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Conteúdo</Label>
-                <RichTextEditor
+                <ContentWorkspace
+                  resetKey={editing?.id ?? "novo"}
                   value={draft.content}
-                  onChange={(content) => setDraft({ ...draft, content })}
+                  onChange={(content) => setDraft((d) => (d ? { ...d, content } : d))}
                 />
               </div>
             </div>
