@@ -33,6 +33,7 @@ import {
   useWpPublications,
 } from "@/lib/use-wp";
 import { WP_CONNECTION_LABEL, type WpConnectionRow, type WpConnectionStatus } from "@/lib/wp-types";
+import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/conexoes")({
