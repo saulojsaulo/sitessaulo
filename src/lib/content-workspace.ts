@@ -164,9 +164,27 @@ export function splitSections(raw: string): ParseResult {
   return { sections, warnings };
 }
 
+/**
+ * Remove numeração (1., 1.1, 2.3.4, 1) etc.) depois de "##"/"###"
+ * e cola o marcador direto no título, sem espaços.
+ */
+export function cleanHeadings(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const m = /^\s*(#{2,6})\s*(.*)$/.exec(line);
+      if (!m) return line;
+      const title = (m[2] ?? "")
+        .replace(/^[\s\u00a0]*\d+(?:[.)]\d+)*[.)]?[\s\u00a0-–—:]*/, "")
+        .trim();
+      return `${m[1]}${title}`;
+    })
+    .join("\n");
+}
+
 export function buildArticle(sections: Section[]): string {
   return sections
-    .map((s) => htmlToText(s.response.trim()))
+    .map((s) => cleanHeadings(htmlToText(s.response.trim())))
     .filter((t) => t !== "")
     .join("\n\n");
 }
