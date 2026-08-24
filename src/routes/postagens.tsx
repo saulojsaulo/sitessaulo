@@ -33,6 +33,7 @@ import { ContentWorkspace } from "@/components/content-workspace";
 import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { WpPublishPanel } from "@/components/wp-publish";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
 import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
@@ -620,6 +621,16 @@ function PostsPage() {
                   value={draft.tags}
                   suggestions={allTags}
                   onChange={(tags) => setDraft({ ...draft, tags })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Publicar em (WordPress)</Label>
+                <WpPublishPanel
+                  postId={editing?.id ?? null}
+                  title={draft.title}
+                  content={draft.content}
+                  cover={draft.cover}
+                  tags={draft.tags}
                 />
               </div>
               <div className="space-y-2">

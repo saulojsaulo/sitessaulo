@@ -10,14 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgendadasRouteImport } from './routes/agendadas'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
+import { Route as ConexoesRouteImport } from './routes/conexoes'
 import { Route as PostagensRouteImport } from './routes/postagens'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendadasRoute = AgendadasRouteImport.update({
+  id: '/agendadas',
+  path: '/agendadas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -35,6 +42,11 @@ const CategoriasRoute = CategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConexoesRoute = ConexoesRouteImport.update({
+  id: '/conexoes',
+  path: '/conexoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PostagensRoute = PostagensRouteImport.update({
   id: '/postagens',
   path: '/postagens',
@@ -43,39 +55,69 @@ const PostagensRoute = PostagensRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agendadas': typeof AgendadasRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
+  '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agendadas': typeof AgendadasRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
+  '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agendadas': typeof AgendadasRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
+  '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analytics' | '/blogs' | '/categorias' | '/postagens'
+  fullPaths:
+    | '/'
+    | '/agendadas'
+    | '/analytics'
+    | '/blogs'
+    | '/categorias'
+    | '/conexoes'
+    | '/postagens'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analytics' | '/blogs' | '/categorias' | '/postagens'
-  id: '__root__' | '/' | '/analytics' | '/blogs' | '/categorias' | '/postagens'
+  to:
+    | '/'
+    | '/agendadas'
+    | '/analytics'
+    | '/blogs'
+    | '/categorias'
+    | '/conexoes'
+    | '/postagens'
+  id:
+    | '__root__'
+    | '/'
+    | '/agendadas'
+    | '/analytics'
+    | '/blogs'
+    | '/categorias'
+    | '/conexoes'
+    | '/postagens'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendadasRoute: typeof AgendadasRoute
   AnalyticsRoute: typeof AnalyticsRoute
   BlogsRoute: typeof BlogsRoute
   CategoriasRoute: typeof CategoriasRoute
+  ConexoesRoute: typeof ConexoesRoute
   PostagensRoute: typeof PostagensRoute
 }
 
@@ -86,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agendadas': {
+      id: '/agendadas'
+      path: '/agendadas'
+      fullPath: '/agendadas'
+      preLoaderRoute: typeof AgendadasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -109,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conexoes': {
+      id: '/conexoes'
+      path: '/conexoes'
+      fullPath: '/conexoes'
+      preLoaderRoute: typeof ConexoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/postagens': {
       id: '/postagens'
       path: '/postagens'
@@ -121,9 +177,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendadasRoute: AgendadasRoute,
   AnalyticsRoute: AnalyticsRoute,
   BlogsRoute: BlogsRoute,
   CategoriasRoute: CategoriasRoute,
+  ConexoesRoute: ConexoesRoute,
   PostagensRoute: PostagensRoute,
 }
 export const routeTree = rootRouteImport
