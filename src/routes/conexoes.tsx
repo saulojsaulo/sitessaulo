@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
+  HelpCircle,
+  KeyRound,
   Pencil,
   Plug,
   Plus,
@@ -13,6 +17,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
