@@ -17,6 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,6 +40,7 @@ import {
   useWpPublications,
 } from "@/lib/use-wp";
 import { WP_CONNECTION_LABEL, type WpConnectionRow, type WpConnectionStatus } from "@/lib/wp-types";
+import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/conexoes")({
@@ -77,15 +85,22 @@ function StatusPill({ status }: { status: WpConnectionStatus }) {
 }
 
 interface Draft {
+  blogId: string;
   name: string;
   site_url: string;
   username: string;
   app_password: string;
 }
 
-const emptyDraft: Draft = { name: "", site_url: "", username: "", app_password: "" };
+const emptyDraft: Draft = { blogId: "", name: "", site_url: "", username: "", app_password: "" };
+
+const normalizeUrl = (url: string) => {
+  const clean = url.trim().replace(/\/+$/, "");
+  return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+};
 
 function ConnectionsPage() {
+  const { blogs } = useStore();
   const connections = useWpConnections();
   const publications = useWpPublications();
   const { create, update, remove } = useConnectionMutations();
@@ -109,15 +124,30 @@ function ConnectionsPage() {
     setOpen(true);
   };
 
+  const blogFor = (c: WpConnectionRow) =>
+    blogs.find((b) => normalizeUrl(b.url) === normalizeUrl(c.site_url) || b.name === c.name) ?? null;
+
   const startEdit = (c: WpConnectionRow) => {
     setEditing(c);
     setDraft({
+      blogId: blogFor(c)?.id ?? "",
       name: c.name,
       site_url: c.site_url,
       username: c.username,
       app_password: c.app_password,
     });
     setOpen(true);
+  };
+
+  /** Blogs cadastrados que ainda não possuem conexão WordPress. */
+  const availableBlogs = blogs.filter(
+    (b) => !rows.some((c) => c.id !== editing?.id && normalizeUrl(c.site_url) === normalizeUrl(b.url)),
+  );
+
+  const pickBlog = (blogId: string) => {
+    const blog = blogs.find((b) => b.id === blogId);
+    if (!blog) return;
+    setDraft((d) => ({ ...d, blogId, name: blog.name, site_url: normalizeUrl(blog.url) }));
   };
 
   const runTest = async (): Promise<WpConnectionStatus> => {
@@ -146,14 +176,14 @@ function ConnectionsPage() {
   };
 
   const save = async () => {
-    if (!draft.name.trim() || !draft.site_url.trim()) {
-      toast.error("Informe o nome e a URL do site");
+    if (!draft.blogId || !draft.site_url.trim()) {
+      toast.error("Selecione o blog cadastrado no sistema");
       return;
     }
     const status = await runTest();
     const payload = {
       name: draft.name.trim(),
-      site_url: draft.site_url.trim().replace(/\/+$/, ""),
+      site_url: normalizeUrl(draft.site_url),
       username: draft.username.trim(),
       app_password: draft.app_password.trim(),
       status,
@@ -205,7 +235,7 @@ function ConnectionsPage() {
         <EmptyState
           icon={<Plug className="size-7" />}
           title="Nenhum site WordPress conectado"
-          description="Cadastre seus blogs com usuário e Application Password (WordPress 5.6+) para publicar e agendar direto daqui."
+          description="Selecione um dos blogs já cadastrados no sistema e informe usuário e Application Password (WordPress 5.6+) para publicar e agendar direto daqui."
           action={
             <Button onClick={startCreate} className="mt-2 gap-2">
               <Plus className="size-4" /> Nova conexão
@@ -301,22 +331,31 @@ function ConnectionsPage() {
           )}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="wp-name">Nome/apelido do blog</Label>
-              <Input
-                id="wp-name"
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                placeholder="Blog de Tecnologia"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="wp-url">URL do site</Label>
-              <Input
-                id="wp-url"
-                value={draft.site_url}
-                onChange={(e) => setDraft({ ...draft, site_url: e.target.value })}
-                placeholder="https://meusite.com"
-              />
+              <Label>Blog cadastrado</Label>
+              <Select value={draft.blogId} onValueChange={pickBlog}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um blog do sistema" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBlogs.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name} — {b.url}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {availableBlogs.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Todos os blogs cadastrados já possuem conexão. Cadastre um novo blog em{" "}
+                  <Link to="/blogs" className="text-primary underline">
+                    Blogs
+                  </Link>
+                  .
+                </p>
+              )}
+              {draft.site_url && (
+                <p className="text-xs text-muted-foreground">Site: {draft.site_url}</p>
+              )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
