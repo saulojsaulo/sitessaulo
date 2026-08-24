@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { Delta, LiveDot, Sparkline } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import { useWpConnections, useWpPublications } from "@/lib/use-wp";
 import {
   daysAgo,
   fmtInt,
@@ -80,6 +81,45 @@ function StatCard({
         <p className="text-2xl font-bold tracking-tight">{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </div>
+    </div>
+  );
+}
+
+/** Painel multi-blog: publicados / agendados / rascunhos por site WordPress. */
+function WpOverview() {
+  const connections = useWpConnections();
+  const publications = useWpPublications();
+  const conns = connections.data ?? [];
+  const pubs = publications.data ?? [];
+
+  if (conns.length === 0)
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        Nenhum site WordPress conectado ainda.
+      </p>
+    );
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {conns.map((c) => {
+        const list = pubs.filter((p) => p.connection_id === c.id);
+        const n = (s: string) => list.filter((p) => p.status === s).length;
+        return (
+          <Link
+            key={c.id}
+            to="/agendadas"
+            className="rounded-lg border p-3 transition-colors hover:bg-accent"
+          >
+            <div className="truncate text-sm font-semibold">{c.name}</div>
+            <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="text-success">{n("publicado")} publicados</span>
+              <span className="text-warning">{n("agendado")} agendados</span>
+              <span>{n("rascunho")} rascunhos</span>
+              {n("falhou") > 0 && <span className="text-destructive">{n("falhou")} falhas</span>}
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -322,6 +362,16 @@ function Dashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="surface mt-4 p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Sites WordPress conectados</h2>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/conexoes">Gerenciar conexões</Link>
+          </Button>
+        </div>
+        <WpOverview />
       </div>
 
       <div className="surface mt-4 p-5">
