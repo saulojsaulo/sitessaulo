@@ -544,7 +544,25 @@ function ConnectionsPage() {
                 </p>
               )}
               {draft.site_url && (
-                <p className="text-xs text-muted-foreground">Site: {draft.site_url}</p>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>Site: {draft.site_url}</span>
+                  <a
+                    href={appPasswordsUrl(draft.site_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary underline"
+                  >
+                    <KeyRound className="size-3.5" /> abrir senhas de aplicativo neste site
+                  </a>
+                  <a
+                    href={adminUrl(draft.site_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary underline"
+                  >
+                    <ExternalLink className="size-3.5" /> wp-admin
+                  </a>
+                </div>
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -556,6 +574,9 @@ function ConnectionsPage() {
                   onChange={(e) => setDraft({ ...draft, username: e.target.value })}
                   autoComplete="off"
                 />
+                <p className="text-xs text-muted-foreground">
+                  O login do WordPress, não o e-mail.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wp-pass">Application Password</Label>
@@ -567,8 +588,12 @@ function ConnectionsPage() {
                   placeholder="xxxx xxxx xxxx xxxx"
                   autoComplete="new-password"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Pode colar com os espaços, como o WordPress mostra.
+                </p>
               </div>
             </div>
+
           </div>
           <DialogFooter className="sm:justify-between">
             <Button
