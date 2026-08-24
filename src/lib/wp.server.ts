@@ -75,7 +75,14 @@ async function wpFetch<T>(
     } catch {
       body = null;
     }
-    if (!res.ok) throw new Error(friendlyError(res.status, body, text));
+    if (!res.ok) {
+      // Firewall (Mod_Security) costuma bloquear /wp-json com 403/406: tenta ?rest_route=.
+      if (!useRestRoute && (res.status === 406 || res.status === 403 || res.status === 418)) {
+        clearTimeout(timer);
+        return wpFetch<T>(creds, path, init, timeoutMs, true);
+      }
+      throw new Error(friendlyError(res.status, body, text));
+    }
     return body as T;
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError")
