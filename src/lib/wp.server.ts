@@ -42,55 +42,107 @@ function restRouteUrl(siteUrl: string, path: string): string {
   return `${siteUrl.trim().replace(/\/+$/, "")}/?${params.toString()}`;
 }
 
+interface Attempt {
+  restRoute: boolean;
+  /** Envia o JSON como form-urlencoded — driblar regras de Mod_Security que barram HTML em JSON. */
+  form: boolean;
+}
+
+/** Converte um corpo JSON em form-urlencoded (arrays viram campos repetidos). */
+function jsonToForm(json: string): URLSearchParams {
+  const params = new URLSearchParams();
+  const obj = JSON.parse(json) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value)) for (const v of value) params.append(`${key}[]`, String(v));
+    else if (typeof value === "object")
+      for (const [k, v] of Object.entries(value as Record<string, unknown>))
+        params.append(`${key}[${k}]`, String(v));
+    else params.append(key, String(value));
+  }
+  return params;
+}
+
+const isJsonBody = (init: RequestInit) =>
+  typeof init.body === "string" &&
+  /application\/json/i.test(String((init.headers as Record<string, string> | undefined)?.["Content-Type"] ?? ""));
+
+async function wpAttempt<T>(
+  creds: Creds,
+  path: string,
+  init: RequestInit,
+  timeoutMs: number,
+  attempt: Attempt,
+): Promise<{ ok: true; data: T } | { ok: false; status: number; body: unknown; text: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = attempt.restRoute
+      ? restRouteUrl(creds.site_url, path)
+      : `${base(creds.site_url)}${path}`;
+    const headers: Record<string, string> = {
+      Authorization: authHeader(creds.username, creds.app_password),
+      Accept: "application/json",
+      // Alguns servidores com Mod_Security devolvem 406 sem um User-Agent de navegador.
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+      ...((init.headers as Record<string, string> | undefined) ?? {}),
+    };
+    let body: BodyInit | null = init.body ?? null;
+    if (attempt.form && isJsonBody(init)) {
+      body = jsonToForm(init.body as string).toString();
+      headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8";
+    }
+    const res = await fetch(url, { ...init, body, signal: controller.signal, headers });
+    const text = await res.text();
+    let parsed: unknown = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = null;
+    }
+    if (!res.ok) return { ok: false, status: res.status, body: parsed, text };
+    return { ok: true, data: parsed as T };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Status que indicam bloqueio de firewall/proxy e valem uma nova tentativa por outro caminho. */
+const BLOCKED = new Set([403, 406, 418, 501, 503]);
+
 async function wpFetch<T>(
   creds: Creds,
   path: string,
   init: RequestInit = {},
   timeoutMs = 30_000,
-  useRestRoute = false,
 ): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const attempts: Attempt[] = [
+    { restRoute: false, form: false },
+    { restRoute: true, form: false },
+    ...(isJsonBody(init)
+      ? [
+          { restRoute: false, form: true },
+          { restRoute: true, form: true },
+        ]
+      : []),
+  ];
+  let last: { status: number; body: unknown; text: string } | null = null;
   try {
-    const url = useRestRoute
-      ? restRouteUrl(creds.site_url, path)
-      : `${base(creds.site_url)}${path}`;
-    const res = await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      headers: {
-        Authorization: authHeader(creds.username, creds.app_password),
-        Accept: "application/json",
-        // Alguns servidores com Mod_Security devolvem 406 sem um User-Agent de navegador.
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-        ...(init.headers ?? {}),
-      },
-    });
-    const text = await res.text();
-    let body: unknown = null;
-    try {
-      body = text ? JSON.parse(text) : null;
-    } catch {
-      body = null;
+    for (const attempt of attempts) {
+      const res = await wpAttempt<T>(creds, path, init, timeoutMs, attempt);
+      if (res.ok) return res.data;
+      last = { status: res.status, body: res.body, text: res.text };
+      // 401/404 não melhoram com outra rota: falha imediatamente.
+      if (!BLOCKED.has(res.status)) break;
     }
-    if (!res.ok) {
-      // Firewall (Mod_Security) costuma bloquear /wp-json com 403/406: tenta ?rest_route=.
-      if (!useRestRoute && (res.status === 406 || res.status === 403 || res.status === 418)) {
-        clearTimeout(timer);
-        return wpFetch<T>(creds, path, init, timeoutMs, true);
-      }
-      throw new Error(friendlyError(res.status, body, text));
-    }
-    return body as T;
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError")
       throw new Error("Tempo limite excedido ao falar com o WordPress.");
     throw e;
-  } finally {
-    clearTimeout(timer);
   }
+  throw new Error(friendlyError(last!.status, last!.body, last!.text));
 }
 
 function friendlyError(status: number, body: unknown, text: string): string {
