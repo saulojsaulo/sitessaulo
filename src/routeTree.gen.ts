@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgendadasRouteImport } from './routes/agendadas'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
@@ -19,6 +20,11 @@ import { Route as PostagensRouteImport } from './routes/postagens'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendadasRoute = AgendadasRouteImport.update({
+  id: '/agendadas',
+  path: '/agendadas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -49,6 +55,7 @@ const PostagensRoute = PostagensRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agendadas': typeof AgendadasRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agendadas': typeof AgendadasRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agendadas': typeof AgendadasRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
@@ -75,12 +84,26 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/analytics' | '/blogs' | '/categorias' | '/conexoes' | '/postagens'
+    | '/'
+    | '/agendadas'
+    | '/analytics'
+    | '/blogs'
+    | '/categorias'
+    | '/conexoes'
+    | '/postagens'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analytics' | '/blogs' | '/categorias' | '/conexoes' | '/postagens'
+  to:
+    | '/'
+    | '/agendadas'
+    | '/analytics'
+    | '/blogs'
+    | '/categorias'
+    | '/conexoes'
+    | '/postagens'
   id:
     | '__root__'
     | '/'
+    | '/agendadas'
     | '/analytics'
     | '/blogs'
     | '/categorias'
@@ -90,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendadasRoute: typeof AgendadasRoute
   AnalyticsRoute: typeof AnalyticsRoute
   BlogsRoute: typeof BlogsRoute
   CategoriasRoute: typeof CategoriasRoute
@@ -104,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agendadas': {
+      id: '/agendadas'
+      path: '/agendadas'
+      fullPath: '/agendadas'
+      preLoaderRoute: typeof AgendadasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -146,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendadasRoute: AgendadasRoute,
   AnalyticsRoute: AnalyticsRoute,
   BlogsRoute: BlogsRoute,
   CategoriasRoute: CategoriasRoute,

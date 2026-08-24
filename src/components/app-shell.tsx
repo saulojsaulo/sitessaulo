@@ -5,6 +5,8 @@ import {
   FolderTree,
   FileText,
   BarChart3,
+  Plug,
+  CalendarClock,
   Moon,
   Sun,
   ChevronsUpDown,
@@ -45,6 +47,8 @@ const items = [
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Postagens", url: "/postagens", icon: FileText },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Conexões WP", url: "/conexoes", icon: Plug },
+  { title: "Agendadas", url: "/agendadas", icon: CalendarClock },
 ] as const;
 
 function BlogSwitcher() {
