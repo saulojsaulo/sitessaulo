@@ -89,7 +89,7 @@ async function wpAttempt<T>(
       "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
       ...((init.headers as Record<string, string> | undefined) ?? {}),
     };
-    let body = init.body;
+    let body: BodyInit | null = init.body ?? null;
     if (attempt.form && isJsonBody(init)) {
       body = jsonToForm(init.body as string).toString();
       headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8";
