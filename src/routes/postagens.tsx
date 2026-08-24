@@ -637,6 +637,10 @@ function PostsPage() {
                 <Label>Conteúdo</Label>
                 <ContentWorkspace
                   resetKey={editing?.id ?? "novo"}
+                  postId={editing?.id ?? null}
+                  title={draft.title}
+                  cover={draft.cover}
+                  tags={draft.tags}
                   value={draft.content}
                   onChange={(content) => setDraft((d) => (d ? { ...d, content } : d))}
                 />
