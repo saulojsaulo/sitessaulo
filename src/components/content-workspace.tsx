@@ -19,6 +19,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { QuickPublish } from "@/components/quick-publish";
 import {
   buildArticle,
+  cleanHeadings,
   parseWorkspace,
   serializeWorkspace,
   splitSections,
