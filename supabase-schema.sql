@@ -80,3 +80,51 @@ from (values
 where not exists (
   select 1 from public.blog_properties p where p.blog_name = v.blog_name
 );
+
+-- ==========================================================
+-- Integração WordPress multi-blog (REST API + Application Passwords)
+-- ==========================================================
+create table if not exists public.wp_connections (
+  id text primary key,
+  name text not null,
+  site_url text not null,
+  username text not null,
+  app_password text not null,
+  status text not null default 'nao_testado',
+  last_error text,
+  last_tested_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.wp_publications (
+  id text primary key,
+  post_id text not null references public.posts(id) on delete cascade,
+  connection_id text not null references public.wp_connections(id) on delete cascade,
+  title text not null default '',
+  wp_post_id integer,
+  wp_link text,
+  status text not null default 'rascunho',
+  scheduled_at timestamptz,
+  error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists wp_publications_post_conn_idx
+  on public.wp_publications (post_id, connection_id);
+
+grant select, insert, update, delete on public.wp_connections to anon, authenticated;
+grant select, insert, update, delete on public.wp_publications to anon, authenticated;
+grant all on public.wp_connections to service_role;
+grant all on public.wp_publications to service_role;
+
+alter table public.wp_connections enable row level security;
+alter table public.wp_publications enable row level security;
+
+-- ATENCAO: app sem autenticacao => estas tabelas ficam publicas.
+-- As Application Passwords ficam legiveis por quem tiver a chave publishable:
+-- mantenha o projeto privado ou adicione login antes de publicar.
+create policy "public access wp_connections" on public.wp_connections
+  for all using (true) with check (true);
+create policy "public access wp_publications" on public.wp_publications
+  for all using (true) with check (true);
