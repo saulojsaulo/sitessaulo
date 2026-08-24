@@ -244,11 +244,17 @@ function ConnectionsPage() {
   const scheduledFor = (id: string) =>
     pubs.filter((p) => p.connection_id === id && p.status === "agendado").length;
 
-  const startCreate = () => {
+  const startCreate = (blogId?: string) => {
     setEditing(null);
-    setDraft(emptyDraft);
+    const blog = blogId ? blogs.find((b) => b.id === blogId) : null;
+    setDraft(
+      blog
+        ? { ...emptyDraft, blogId: blog.id, name: blog.name, site_url: normalizeUrl(blog.url) }
+        : emptyDraft,
+    );
     setOpen(true);
   };
+
 
   const blogFor = (c: WpConnectionRow) =>
     blogs.find((b) => normalizeUrl(b.url) === normalizeUrl(c.site_url) || b.name === c.name) ?? null;
