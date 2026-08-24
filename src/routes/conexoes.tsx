@@ -17,6 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -169,14 +176,14 @@ function ConnectionsPage() {
   };
 
   const save = async () => {
-    if (!draft.name.trim() || !draft.site_url.trim()) {
-      toast.error("Informe o nome e a URL do site");
+    if (!draft.blogId || !draft.site_url.trim()) {
+      toast.error("Selecione o blog cadastrado no sistema");
       return;
     }
     const status = await runTest();
     const payload = {
       name: draft.name.trim(),
-      site_url: draft.site_url.trim().replace(/\/+$/, ""),
+      site_url: normalizeUrl(draft.site_url),
       username: draft.username.trim(),
       app_password: draft.app_password.trim(),
       status,
@@ -228,7 +235,7 @@ function ConnectionsPage() {
         <EmptyState
           icon={<Plug className="size-7" />}
           title="Nenhum site WordPress conectado"
-          description="Cadastre seus blogs com usuário e Application Password (WordPress 5.6+) para publicar e agendar direto daqui."
+          description="Selecione um dos blogs já cadastrados no sistema e informe usuário e Application Password (WordPress 5.6+) para publicar e agendar direto daqui."
           action={
             <Button onClick={startCreate} className="mt-2 gap-2">
               <Plus className="size-4" /> Nova conexão
