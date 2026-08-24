@@ -104,6 +104,127 @@ const normalizeUrl = (url: string) => {
   return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
 };
 
+const adminUrl = (url: string) => `${normalizeUrl(url)}/wp-admin`;
+const appPasswordsUrl = (url: string) =>
+  `${normalizeUrl(url)}/wp-admin/profile.php#application-passwords`;
+
+const GUIDE_KEY = "postflow.wpGuide.open";
+
+const GUIDE_STEPS: { title: string; body: string }[] = [
+  {
+    title: "Abra o painel do blog como Administrador",
+    body: "Acesse o wp-admin do site com um usuário que possa publicar posts (Administrador ou Editor).",
+  },
+  {
+    title: "Confira os requisitos",
+    body: "WordPress 5.6 ou superior, site em HTTPS e permalinks amigáveis (Configurações → Links permanentes, qualquer opção diferente de “Simples”).",
+  },
+  {
+    title: "Vá em Usuários → Perfil → Senhas de aplicativo",
+    body: "Role a página do perfil até a seção “Senhas de aplicativo” (Application Passwords).",
+  },
+  {
+    title: "Crie a senha com o nome PostFlow",
+    body: "Digite PostFlow no campo de nome e clique em “Adicionar nova senha de aplicativo”. Copie o valor gerado — ele aparece uma única vez.",
+  },
+  {
+    title: "Copie o login do usuário",
+    body: "Use o nome de usuário (login) do WordPress, não o e-mail nem o nome de exibição.",
+  },
+  {
+    title: "Volte ao PostFlow e clique em Nova conexão",
+    body: "Escolha o blog cadastrado (nome e URL vêm automaticamente) e cole usuário e Application Password.",
+  },
+  {
+    title: "Teste e salve",
+    body: "Clique em “Testar conexão”: o status vira Conectado quando as credenciais funcionam. Depois salve.",
+  },
+];
+
+const GUIDE_TROUBLESHOOT: { problem: string; fix: string }[] = [
+  {
+    problem: "Não aparece a seção “Senhas de aplicativo”",
+    fix: "Normalmente é site sem HTTPS ou um plugin de segurança (Wordfence, Solid/iThemes) bloqueando a REST API. Libere /wp-json/ e ative Application Passwords.",
+  },
+  {
+    problem: "Erro rest_no_route",
+    fix: "Permalinks estão em “Simples”. Troque em Configurações → Links permanentes e salve.",
+  },
+  {
+    problem: "Credenciais inválidas",
+    fix: "Confira o login (não o e-mail) e cole a Application Password, nunca a senha de login. Espaços na senha podem ser mantidos.",
+  },
+  {
+    problem: "Sem permissão para publicar",
+    fix: "O usuário precisa ser Administrador ou Editor no WordPress.",
+  },
+];
+
+function SetupGuide({ defaultOpen }: { defaultOpen: boolean }) {
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return defaultOpen;
+    const saved = window.localStorage.getItem(GUIDE_KEY);
+    return saved === null ? defaultOpen : saved === "1";
+  });
+
+  const toggle = () => {
+    setOpen((v) => {
+      const next = !v;
+      if (typeof window !== "undefined") window.localStorage.setItem(GUIDE_KEY, next ? "1" : "0");
+      return next;
+    });
+  };
+
+  return (
+    <div className="surface mb-5 overflow-hidden">
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold"
+      >
+        <HelpCircle className="size-4 text-primary" />
+        Como conectar um blog (passo a passo)
+        {open ? (
+          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+        )}
+      </button>
+      {open && (
+        <div className="border-t border-border px-4 py-4">
+          <ol className="grid gap-3 sm:grid-cols-2">
+            {GUIDE_STEPS.map((s, i) => (
+              <li key={s.title} className="flex gap-3">
+                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{s.title}</p>
+                  <p className="text-xs text-muted-foreground">{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Se algo der errado
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {GUIDE_TROUBLESHOOT.map((t) => (
+                <li key={t.problem} className="text-xs">
+                  <span className="font-medium">{t.problem}:</span>{" "}
+                  <span className="text-muted-foreground">{t.fix}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function ConnectionsPage() {
   const { blogs } = useStore();
   const connections = useWpConnections();
