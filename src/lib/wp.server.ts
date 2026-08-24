@@ -34,16 +34,28 @@ interface Creds {
   app_password: string;
 }
 
+/** Rota alternativa (?rest_route=) usada quando o firewall bloqueia /wp-json. */
+function restRouteUrl(siteUrl: string, path: string): string {
+  const [route, query] = path.split("?");
+  const params = new URLSearchParams(query ?? "");
+  params.set("rest_route", `/wp/v2${route}`);
+  return `${siteUrl.trim().replace(/\/+$/, "")}/?${params.toString()}`;
+}
+
 async function wpFetch<T>(
   creds: Creds,
   path: string,
   init: RequestInit = {},
   timeoutMs = 30_000,
+  useRestRoute = false,
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${base(creds.site_url)}${path}`, {
+    const url = useRestRoute
+      ? restRouteUrl(creds.site_url, path)
+      : `${base(creds.site_url)}${path}`;
+    const res = await fetch(url, {
       ...init,
       signal: controller.signal,
       headers: {
