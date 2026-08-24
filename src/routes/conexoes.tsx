@@ -77,15 +77,22 @@ function StatusPill({ status }: { status: WpConnectionStatus }) {
 }
 
 interface Draft {
+  blogId: string;
   name: string;
   site_url: string;
   username: string;
   app_password: string;
 }
 
-const emptyDraft: Draft = { name: "", site_url: "", username: "", app_password: "" };
+const emptyDraft: Draft = { blogId: "", name: "", site_url: "", username: "", app_password: "" };
+
+const normalizeUrl = (url: string) => {
+  const clean = url.trim().replace(/\/+$/, "");
+  return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+};
 
 function ConnectionsPage() {
+  const { blogs } = useStore();
   const connections = useWpConnections();
   const publications = useWpPublications();
   const { create, update, remove } = useConnectionMutations();
