@@ -116,15 +116,30 @@ function ConnectionsPage() {
     setOpen(true);
   };
 
+  const blogFor = (c: WpConnectionRow) =>
+    blogs.find((b) => normalizeUrl(b.url) === normalizeUrl(c.site_url) || b.name === c.name) ?? null;
+
   const startEdit = (c: WpConnectionRow) => {
     setEditing(c);
     setDraft({
+      blogId: blogFor(c)?.id ?? "",
       name: c.name,
       site_url: c.site_url,
       username: c.username,
       app_password: c.app_password,
     });
     setOpen(true);
+  };
+
+  /** Blogs cadastrados que ainda não possuem conexão WordPress. */
+  const availableBlogs = blogs.filter(
+    (b) => !rows.some((c) => c.id !== editing?.id && normalizeUrl(c.site_url) === normalizeUrl(b.url)),
+  );
+
+  const pickBlog = (blogId: string) => {
+    const blog = blogs.find((b) => b.id === blogId);
+    if (!blog) return;
+    setDraft((d) => ({ ...d, blogId, name: blog.name, site_url: normalizeUrl(blog.url) }));
   };
 
   const runTest = async (): Promise<WpConnectionStatus> => {
