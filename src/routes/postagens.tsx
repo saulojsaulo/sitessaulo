@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RichTextEditor } from "@/components/rich-text-editor";
+import { ContentWorkspace } from "@/components/content-workspace";
 import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -624,9 +624,10 @@ function PostsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Conteúdo</Label>
-                <RichTextEditor
+                <ContentWorkspace
+                  resetKey={editing?.id ?? "novo"}
                   value={draft.content}
-                  onChange={(content) => setDraft({ ...draft, content })}
+                  onChange={(content) => setDraft((d) => (d ? { ...d, content } : d))}
                 />
               </div>
             </div>
