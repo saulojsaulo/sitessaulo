@@ -166,7 +166,7 @@ export function splitSections(raw: string): ParseResult {
 
 export function buildArticle(sections: Section[]): string {
   return sections
-    .map((s) => s.response.trim())
+    .map((s) => htmlToText(s.response.trim()))
     .filter((t) => t !== "")
     .join("\n\n");
 }
