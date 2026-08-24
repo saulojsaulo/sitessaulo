@@ -49,6 +49,10 @@ async function wpFetch<T>(
       headers: {
         Authorization: authHeader(creds.username, creds.app_password),
         Accept: "application/json",
+        // Alguns servidores com Mod_Security devolvem 406 sem um User-Agent de navegador.
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
         ...(init.headers ?? {}),
       },
     });
@@ -80,6 +84,8 @@ function friendlyError(status: number, body: unknown, text: string): string {
   if (code === "rest_no_route")
     return "REST API não encontrada. Ative os links permanentes (permalinks) no WordPress.";
   if (status === 404) return "Endpoint não encontrado — confira a URL do site.";
+  if (status === 406 || /mod_security/i.test(text))
+    return "O firewall do servidor (Mod_Security) bloqueou o envio. Peça à sua hospedagem para liberar as requisições REST (/wp-json/wp/v2/posts e /media) ou desativar as regras de Mod_Security para o seu usuário.";
   return `WordPress [${status}]: ${message || "erro desconhecido"}`;
 }
 
