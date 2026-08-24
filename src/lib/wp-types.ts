@@ -33,7 +33,7 @@ export interface WpPublicationRow {
 export interface WpTerm {
   id: number;
   name: string;
-  count?: number;
+  count?: number | undefined;
 }
 
 export interface WpAuthor {
