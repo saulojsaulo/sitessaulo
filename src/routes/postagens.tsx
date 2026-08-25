@@ -10,7 +10,9 @@ import {
   Trash2,
   ArrowUpDown,
   Sparkles,
+  Loader2,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +31,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ContentWorkspace } from "@/components/content-workspace";
+import {
+  askGemini,
+  ContentWorkspace,
+  type WorkspaceApi,
+} from "@/components/content-workspace";
 import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -152,6 +158,9 @@ function PostsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const wsApi = useRef<WorkspaceApi | null>(null);
+
 
   const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
   const [catFilter, setCatFilter] = useState(search.categoria ?? "all");
@@ -312,6 +321,32 @@ function PostsPage() {
       setEditing({ ...editing, status: "estrutura" });
     }
   };
+
+  const generateStructureWithAI = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar com IA");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const text = await askGemini(buildStructurePrompt(title));
+      if (!text) throw new Error("A IA não retornou conteúdo");
+      wsApi.current?.setRaw(text);
+      toast.success("Estrutura gerada com IA!");
+      setDraft((d) => (d ? { ...d, status: "estrutura" } : d));
+      if (editing) {
+        updatePost(editing.id, { status: "estrutura" });
+        setEditing({ ...editing, status: "estrutura" });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar com IA");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
 
   return (
     <>
@@ -519,16 +554,32 @@ function PostsPage() {
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="Como escrever melhores títulos"
                 />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="mt-1 w-full gap-2 sm:w-auto"
-                  disabled={!draft.title.trim()}
-                  onClick={generateStructurePrompt}
-                >
-                  <Sparkles className="size-4" /> Gerar Prompt de Estrutura
-                </Button>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2"
+                    disabled={!draft.title.trim()}
+                    onClick={generateStructurePrompt}
+                  >
+                    <Sparkles className="size-4" /> Gerar Prompt de Estrutura
+                  </Button>
+                  <Button
+                    type="button"
+                    className="gap-2"
+                    disabled={!draft.title.trim() || aiLoading}
+                    onClick={() => void generateStructureWithAI()}
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    Gerar com IA
+                  </Button>
+                </div>
               </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Blog</Label>
@@ -636,7 +687,11 @@ function PostsPage() {
               <div className="space-y-2">
                 <Label>Conteúdo</Label>
                 <ContentWorkspace
+                  onReady={(api) => {
+                    wsApi.current = api;
+                  }}
                   resetKey={editing?.id ?? "novo"}
+
                   postId={editing?.id ?? null}
                   title={draft.title}
                   cover={draft.cover}

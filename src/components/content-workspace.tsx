@@ -5,9 +5,11 @@ import {
   Check,
   Clock,
   Copy,
+  Loader2,
   Pencil,
   RotateCcw,
   Save,
+  Sparkles,
   Trash2,
   Wand2,
 } from "lucide-react";
@@ -17,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { QuickPublish } from "@/components/quick-publish";
+import { generateText } from "@/lib/ai.functions";
 import {
   buildArticle,
   cleanHeadings,
@@ -26,6 +29,11 @@ import {
   type Section,
   type Workspace,
 } from "@/lib/content-workspace";
+
+export interface WorkspaceApi {
+  /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
+  setRaw: (text: string) => void;
+}
 
 interface Props {
   value: string;
@@ -38,7 +46,18 @@ interface Props {
   cover?: string | undefined;
   tags?: string[] | undefined;
   onStatusChange?: (status: "artigo_completo" | "agendado" | "publicado") => void;
+  /** Expõe ações do workspace para a tela de edição. */
+  onReady?: (api: WorkspaceApi) => void;
 }
+
+const SYSTEM_PROMPT =
+  "Você é um redator brasileiro especialista em SEO e conteúdo para blogs. Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.";
+
+export async function askGemini(prompt: string) {
+  const res = await generateText({ data: { prompt, system: SYSTEM_PROMPT } });
+  return res.text;
+}
+
 
 const copy = async (text: string, message: string) => {
   try {
@@ -49,11 +68,14 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange, onReady }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const loadedFor = useRef(resetKey);
+  const wsRef = useRef(ws);
+  wsRef.current = ws;
 
   useEffect(() => {
     if (loadedFor.current === resetKey) return;
@@ -65,9 +87,20 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
 
   /** Atualiza estado local + campo persistido da postagem. */
   const commit = (next: Workspace) => {
+    wsRef.current = next;
     setWs(next);
     onChange(serializeWorkspace(next));
   };
+
+  useEffect(() => {
+    onReady?.({
+      setRaw: (text: string) => {
+        commit({ ...wsRef.current, raw: text });
+        setTab("bruta");
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onReady]);
 
   const rebuilt = useMemo(() => buildArticle(ws.sections), [ws.sections]);
   const article = useMemo(
@@ -91,8 +124,9 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   };
 
   const updateSection = (id: string, patch: Partial<Section>) => {
-    const sections = ws.sections.map((s) => (s.id === id ? { ...s, ...patch } : s));
-    commit({ ...ws, sections, article: ws.manual ? ws.article : buildArticle(sections) });
+    const sections = wsRef.current.sections.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    const cur = wsRef.current;
+    commit({ ...cur, sections, article: cur.manual ? cur.article : buildArticle(sections) });
   };
 
   const removeSection = (id: string) => {
@@ -101,22 +135,69 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
     toast.success("Sessão excluída");
   };
 
+  const generateSection = async (id: string) => {
+    const section = wsRef.current.sections.find((s) => s.id === id);
+    if (!section?.prompt.trim()) return;
+    const text = await askGemini(section.prompt);
+    if (!text) throw new Error("A IA não retornou conteúdo");
+    updateSection(id, { response: text });
+  };
+
+  const generateAll = async () => {
+    const list = wsRef.current.sections;
+    if (list.length === 0) return;
+    setBulk({ done: 0, total: list.length });
+    let ok = 0;
+    for (const [i, s] of list.entries()) {
+      try {
+        await generateSection(s.id);
+        ok += 1;
+      } catch (e) {
+        toast.error(`Sessão ${i + 1}: ${e instanceof Error ? e.message : "falhou"}`);
+      }
+      setBulk({ done: i + 1, total: list.length });
+    }
+    setBulk(null);
+    if (ok > 0) toast.success(`${ok}/${list.length} sessões geradas com IA`);
+  };
+
   const filled = ws.sections.filter((s) => s.response.trim() !== "").length;
+
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
-      <TabsList className="w-full sm:w-auto">
-        <TabsTrigger value="bruta">Estrutura Bruta</TabsTrigger>
-        <TabsTrigger value="sessoes">
-          Estruturas Individuais
-          {ws.sections.length > 0 ? (
-            <span className="ml-1.5 rounded bg-primary/15 px-1.5 text-xs text-primary">
-              {filled}/{ws.sections.length}
-            </span>
-          ) : null}
-        </TabsTrigger>
-        <TabsTrigger value="artigo">Artigo Pronto</TabsTrigger>
-      </TabsList>
+      <div className="flex flex-wrap items-center gap-2">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="bruta">Estrutura Bruta</TabsTrigger>
+          <TabsTrigger value="sessoes">
+            Estruturas Individuais
+            {ws.sections.length > 0 ? (
+              <span className="ml-1.5 rounded bg-primary/15 px-1.5 text-xs text-primary">
+                {filled}/{ws.sections.length}
+              </span>
+            ) : null}
+          </TabsTrigger>
+          <TabsTrigger value="artigo">Artigo Pronto</TabsTrigger>
+        </TabsList>
+        <Button
+          type="button"
+          variant="secondary"
+          className="gap-2 sm:ml-auto"
+          disabled={ws.sections.length === 0 || bulk !== null}
+          onClick={() => void generateAll()}
+        >
+          {bulk ? (
+            <>
+              <Loader2 className="size-4 animate-spin" /> Gerando {bulk.done}/{bulk.total}…
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-4" /> Gerar Todas as Sessões com IA
+            </>
+          )}
+        </Button>
+      </div>
+
 
       <TabsContent value="bruta" className="mt-3 space-y-3">
         <Textarea
@@ -161,10 +242,13 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
               key={s.id}
               index={i + 1}
               section={s}
+              busy={bulk !== null}
+              onGenerate={() => generateSection(s.id)}
               onChange={(patch) => updateSection(s.id, patch)}
               onRemove={() => removeSection(s.id)}
             />
           ))
+
         )}
       </TabsContent>
 
@@ -230,17 +314,23 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
 function SectionCard({
   index,
   section,
+  busy,
+  onGenerate,
   onChange,
   onRemove,
 }: {
   index: number;
   section: Section;
+  busy: boolean;
+  onGenerate: () => Promise<void>;
   onChange: (patch: Partial<Section>) => void;
   onRemove: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [prompt, setPrompt] = useState(section.prompt);
   const [response, setResponse] = useState(section.response);
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     if (!editing) {
@@ -267,7 +357,31 @@ function SectionCard({
           {done ? <Check className="size-3" /> : <Clock className="size-3" />}
           {done ? "Respondida" : "Pendente"}
         </span>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-1.5"
+          disabled={busy || loading || !section.prompt.trim()}
+          onClick={() => {
+            setLoading(true);
+            void onGenerate()
+              .then(() => toast.success(`Sessão ${index} gerada com IA`))
+              .catch((e: unknown) =>
+                toast.error(e instanceof Error ? e.message : "Falha ao gerar com IA"),
+              )
+              .finally(() => setLoading(false));
+          }}
+        >
+          {loading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="size-3.5" />
+          )}
+          Gerar com IA
+        </Button>
         <div className="ml-auto flex items-center gap-1">
+
           <Button
             type="button"
             variant="ghost"
