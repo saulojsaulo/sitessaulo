@@ -219,6 +219,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             article={article}
             cover={cover}
             tags={tags}
+            {...(onStatusChange ? { onStatusChange } : {})}
           />
         </div>
       </TabsContent>
