@@ -37,6 +37,7 @@ interface Props {
   title?: string;
   cover?: string | undefined;
   tags?: string[] | undefined;
+  onStatusChange?: (status: "artigo_completo" | "agendado" | "publicado") => void;
 }
 
 const copy = async (text: string, message: string) => {
@@ -48,7 +49,7 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
