@@ -357,7 +357,31 @@ function SectionCard({
           {done ? <Check className="size-3" /> : <Clock className="size-3" />}
           {done ? "Respondida" : "Pendente"}
         </span>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-1.5"
+          disabled={busy || loading || !section.prompt.trim()}
+          onClick={() => {
+            setLoading(true);
+            void onGenerate()
+              .then(() => toast.success(`Sessão ${index} gerada com IA`))
+              .catch((e: unknown) =>
+                toast.error(e instanceof Error ? e.message : "Falha ao gerar com IA"),
+              )
+              .finally(() => setLoading(false));
+          }}
+        >
+          {loading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="size-3.5" />
+          )}
+          Gerar com IA
+        </Button>
         <div className="ml-auto flex items-center gap-1">
+
           <Button
             type="button"
             variant="ghost"
