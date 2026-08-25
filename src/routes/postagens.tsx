@@ -313,6 +313,32 @@ function PostsPage() {
     }
   };
 
+  const generateStructureWithAI = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar com IA");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const text = await askGemini(buildStructurePrompt(title));
+      if (!text) throw new Error("A IA não retornou conteúdo");
+      wsApi.current?.setRaw(text);
+      toast.success("Estrutura gerada com IA!");
+      setDraft((d) => (d ? { ...d, status: "estrutura" } : d));
+      if (editing) {
+        updatePost(editing.id, { status: "estrutura" });
+        setEditing({ ...editing, status: "estrutura" });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar com IA");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+
   return (
     <>
       <PageHeader
