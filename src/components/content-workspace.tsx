@@ -5,9 +5,11 @@ import {
   Check,
   Clock,
   Copy,
+  Loader2,
   Pencil,
   RotateCcw,
   Save,
+  Sparkles,
   Trash2,
   Wand2,
 } from "lucide-react";
@@ -17,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { QuickPublish } from "@/components/quick-publish";
+import { generateText } from "@/lib/ai.functions";
 import {
   buildArticle,
   cleanHeadings,
@@ -26,6 +29,11 @@ import {
   type Section,
   type Workspace,
 } from "@/lib/content-workspace";
+
+export interface WorkspaceApi {
+  /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
+  setRaw: (text: string) => void;
+}
 
 interface Props {
   value: string;
@@ -38,7 +46,18 @@ interface Props {
   cover?: string | undefined;
   tags?: string[] | undefined;
   onStatusChange?: (status: "artigo_completo" | "agendado" | "publicado") => void;
+  /** Expõe ações do workspace para a tela de edição. */
+  onReady?: (api: WorkspaceApi) => void;
 }
+
+const SYSTEM_PROMPT =
+  "Você é um redator brasileiro especialista em SEO e conteúdo para blogs. Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.";
+
+export async function askGemini(prompt: string) {
+  const res = await generateText({ data: { prompt, system: SYSTEM_PROMPT } });
+  return res.text;
+}
+
 
 const copy = async (text: string, message: string) => {
   try {
