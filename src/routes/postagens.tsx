@@ -687,7 +687,11 @@ function PostsPage() {
               <div className="space-y-2">
                 <Label>Conteúdo</Label>
                 <ContentWorkspace
+                  onReady={(api) => {
+                    wsApi.current = api;
+                  }}
                   resetKey={editing?.id ?? "novo"}
+
                   postId={editing?.id ?? null}
                   title={draft.title}
                   cover={draft.cover}
