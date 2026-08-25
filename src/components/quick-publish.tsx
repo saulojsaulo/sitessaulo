@@ -84,6 +84,7 @@ export function QuickPublish({ postId, title, article, cover, tags, onStatusChan
       return;
     }
     setSending(true);
+    let anyOk = false;
     try {
       for (const id of selected) {
         const conn = rows.find((c) => c.id === id);
@@ -119,14 +120,16 @@ export function QuickPublish({ postId, title, article, cover, tags, onStatusChan
           error: res.ok ? null : (res.error ?? "Erro desconhecido"),
         });
 
-        if (res.ok)
+        if (res.ok) {
+          anyOk = true;
           toast.success(
             mode === "future"
               ? `${conn.name}: agendado para ${new Date(date).toLocaleString("pt-BR")}`
               : `${conn.name}: publicado com sucesso`,
           );
-        else toast.error(`${conn.name}: ${res.error}`);
+        } else toast.error(`${conn.name}: ${res.error}`);
       }
+      if (anyOk) onStatusChange?.(mode === "future" ? "agendado" : "publicado");
       setMode(null);
     } finally {
       setSending(false);
