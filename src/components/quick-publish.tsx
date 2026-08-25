@@ -25,6 +25,7 @@ interface Props {
   article: string;
   cover?: string | undefined;
   tags?: string[] | undefined;
+  onStatusChange?: (status: "agendado" | "publicado") => void;
 }
 
 const defaultDate = () =>
