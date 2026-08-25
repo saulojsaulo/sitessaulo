@@ -31,7 +31,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ContentWorkspace } from "@/components/content-workspace";
+import {
+  askGemini,
+  ContentWorkspace,
+  type WorkspaceApi,
+} from "@/components/content-workspace";
 import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
