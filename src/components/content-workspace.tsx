@@ -166,18 +166,38 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
-      <TabsList className="w-full sm:w-auto">
-        <TabsTrigger value="bruta">Estrutura Bruta</TabsTrigger>
-        <TabsTrigger value="sessoes">
-          Estruturas Individuais
-          {ws.sections.length > 0 ? (
-            <span className="ml-1.5 rounded bg-primary/15 px-1.5 text-xs text-primary">
-              {filled}/{ws.sections.length}
-            </span>
-          ) : null}
-        </TabsTrigger>
-        <TabsTrigger value="artigo">Artigo Pronto</TabsTrigger>
-      </TabsList>
+      <div className="flex flex-wrap items-center gap-2">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="bruta">Estrutura Bruta</TabsTrigger>
+          <TabsTrigger value="sessoes">
+            Estruturas Individuais
+            {ws.sections.length > 0 ? (
+              <span className="ml-1.5 rounded bg-primary/15 px-1.5 text-xs text-primary">
+                {filled}/{ws.sections.length}
+              </span>
+            ) : null}
+          </TabsTrigger>
+          <TabsTrigger value="artigo">Artigo Pronto</TabsTrigger>
+        </TabsList>
+        <Button
+          type="button"
+          variant="secondary"
+          className="gap-2 sm:ml-auto"
+          disabled={ws.sections.length === 0 || bulk !== null}
+          onClick={() => void generateAll()}
+        >
+          {bulk ? (
+            <>
+              <Loader2 className="size-4 animate-spin" /> Gerando {bulk.done}/{bulk.total}…
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-4" /> Gerar Todas as Sessões com IA
+            </>
+          )}
+        </Button>
+      </div>
+
 
       <TabsContent value="bruta" className="mt-3 space-y-3">
         <Textarea
