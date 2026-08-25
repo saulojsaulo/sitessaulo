@@ -242,10 +242,13 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
               key={s.id}
               index={i + 1}
               section={s}
+              busy={bulk !== null}
+              onGenerate={() => generateSection(s.id)}
               onChange={(patch) => updateSection(s.id, patch)}
               onRemove={() => removeSection(s.id)}
             />
           ))
+
         )}
       </TabsContent>
 
