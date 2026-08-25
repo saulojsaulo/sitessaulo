@@ -519,16 +519,32 @@ function PostsPage() {
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="Como escrever melhores títulos"
                 />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="mt-1 w-full gap-2 sm:w-auto"
-                  disabled={!draft.title.trim()}
-                  onClick={generateStructurePrompt}
-                >
-                  <Sparkles className="size-4" /> Gerar Prompt de Estrutura
-                </Button>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2"
+                    disabled={!draft.title.trim()}
+                    onClick={generateStructurePrompt}
+                  >
+                    <Sparkles className="size-4" /> Gerar Prompt de Estrutura
+                  </Button>
+                  <Button
+                    type="button"
+                    className="gap-2"
+                    disabled={!draft.title.trim() || aiLoading}
+                    onClick={() => void generateStructureWithAI()}
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    Gerar com IA
+                  </Button>
+                </div>
               </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Blog</Label>
