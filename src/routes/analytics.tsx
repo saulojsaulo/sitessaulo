@@ -835,6 +835,12 @@ function AnalyticsPage() {
         }
       />
 
+      <div className="mb-4">
+        <AiUsagePanel />
+      </div>
+
+
+
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] space-y-1">
           <Label className="text-xs">Blog</Label>
