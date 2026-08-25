@@ -314,17 +314,23 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
 function SectionCard({
   index,
   section,
+  busy,
+  onGenerate,
   onChange,
   onRemove,
 }: {
   index: number;
   section: Section;
+  busy: boolean;
+  onGenerate: () => Promise<void>;
   onChange: (patch: Partial<Section>) => void;
   onRemove: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [prompt, setPrompt] = useState(section.prompt);
   const [response, setResponse] = useState(section.response);
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     if (!editing) {
