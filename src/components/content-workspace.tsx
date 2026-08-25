@@ -68,11 +68,14 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange, onReady }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const loadedFor = useRef(resetKey);
+  const wsRef = useRef(ws);
+  wsRef.current = ws;
 
   useEffect(() => {
     if (loadedFor.current === resetKey) return;
@@ -84,9 +87,20 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
 
   /** Atualiza estado local + campo persistido da postagem. */
   const commit = (next: Workspace) => {
+    wsRef.current = next;
     setWs(next);
     onChange(serializeWorkspace(next));
   };
+
+  useEffect(() => {
+    onReady?.({
+      setRaw: (text: string) => {
+        commit({ ...wsRef.current, raw: text });
+        setTab("bruta");
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onReady]);
 
   const rebuilt = useMemo(() => buildArticle(ws.sections), [ws.sections]);
   const article = useMemo(
@@ -110,8 +124,9 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   };
 
   const updateSection = (id: string, patch: Partial<Section>) => {
-    const sections = ws.sections.map((s) => (s.id === id ? { ...s, ...patch } : s));
-    commit({ ...ws, sections, article: ws.manual ? ws.article : buildArticle(sections) });
+    const sections = wsRef.current.sections.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    const cur = wsRef.current;
+    commit({ ...cur, sections, article: cur.manual ? cur.article : buildArticle(sections) });
   };
 
   const removeSection = (id: string) => {
@@ -120,7 +135,34 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
     toast.success("Sessão excluída");
   };
 
+  const generateSection = async (id: string) => {
+    const section = wsRef.current.sections.find((s) => s.id === id);
+    if (!section?.prompt.trim()) return;
+    const text = await askGemini(section.prompt);
+    if (!text) throw new Error("A IA não retornou conteúdo");
+    updateSection(id, { response: text });
+  };
+
+  const generateAll = async () => {
+    const list = wsRef.current.sections;
+    if (list.length === 0) return;
+    setBulk({ done: 0, total: list.length });
+    let ok = 0;
+    for (const [i, s] of list.entries()) {
+      try {
+        await generateSection(s.id);
+        ok += 1;
+      } catch (e) {
+        toast.error(`Sessão ${i + 1}: ${e instanceof Error ? e.message : "falhou"}`);
+      }
+      setBulk({ done: i + 1, total: list.length });
+    }
+    setBulk(null);
+    if (ok > 0) toast.success(`${ok}/${list.length} sessões geradas com IA`);
+  };
+
   const filled = ws.sections.filter((s) => s.response.trim() !== "").length;
+
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
