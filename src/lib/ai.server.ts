@@ -1,4 +1,5 @@
-/** Chamada ao Lovable AI Gateway (Gemini) com streaming acumulado no servidor. */
+/** Chamada ao Gemini: usa a chave própria do usuário (GEMINI_API_KEY) quando existir,
+ *  caso contrário cai no Lovable AI Gateway. Streaming acumulado no servidor. */
 import { estimateTokens, logAiUsage } from "./ai-usage.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -10,11 +11,129 @@ export interface AiMeta {
   postTitle?: string | null;
 }
 
+/** Chamada direta à API do Google (chave própria do usuário). */
+async function generateWithGoogleDirect(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  system: string | undefined,
+  meta: AiMeta,
+): Promise<string> {
+  const started = Date.now();
+  const base = {
+    kind: meta.kind ?? "outro",
+    post_id: meta.postId ?? null,
+    post_title: meta.postTitle ?? null,
+    model: `google-direct/${model}`,
+  };
+
+  const fail = async (message: string): Promise<never> => {
+    await logAiUsage({
+      ...base,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      estimated: true,
+      duration_ms: Date.now() - started,
+      ok: false,
+      error: message.slice(0, 500),
+    });
+    throw new Error(message);
+  };
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model,
+  )}:streamGenerateContent?alt=sse`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+      }),
+    });
+  } catch (e) {
+    return fail(`Falha de rede ao chamar o Gemini: ${e instanceof Error ? e.message : "erro"}`);
+  }
+
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    if (res.status === 429) return fail("Limite de requisições da sua conta Gemini atingido.");
+    if (res.status === 400 && body.includes("API key"))
+      return fail("Chave GEMINI_API_KEY inválida.");
+    if (res.status === 403) return fail(`Acesso negado pelo Google: ${body.slice(0, 200)}`);
+    return fail(`Gemini [${res.status}]: ${body.slice(0, 300)}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  let usage: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | null =
+    null;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (payload === "" || payload === "[DONE]") continue;
+      try {
+        const json = JSON.parse(payload) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+          usageMetadata?: {
+            promptTokenCount?: number;
+            candidatesTokenCount?: number;
+            totalTokenCount?: number;
+          };
+        };
+        for (const part of json.candidates?.[0]?.content?.parts ?? []) {
+          if (part.text) text += part.text;
+        }
+        if (json.usageMetadata) usage = json.usageMetadata;
+      } catch {
+        // fragmento incompleto
+      }
+    }
+  }
+
+  const out = text.trim();
+  const promptTokens = usage?.promptTokenCount ?? estimateTokens((system ?? "") + prompt);
+  const completionTokens = usage?.candidatesTokenCount ?? estimateTokens(out);
+
+  await logAiUsage({
+    ...base,
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: usage?.totalTokenCount ?? promptTokens + completionTokens,
+    estimated: usage == null,
+    duration_ms: Date.now() - started,
+    ok: true,
+    error: null,
+  });
+
+  return out;
+}
+
 export async function generateWithGemini(
   prompt: string,
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
+  const ownKey = process.env["GEMINI_API_KEY"];
+  if (ownKey) {
+    const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
+    return generateWithGoogleDirect(ownKey, model, prompt, system, meta);
+  }
+
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new Error("LOVABLE_API_KEY não configurada");
 
