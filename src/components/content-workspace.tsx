@@ -186,6 +186,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             className="gap-2"
             onClick={() => {
               commit({ ...ws, article: rebuilt, manual: false });
+              onStatusChange?.("artigo_completo");
               toast.success("Artigo reconstruído a partir das sessões");
             }}
           >
