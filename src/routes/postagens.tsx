@@ -331,7 +331,12 @@ function PostsPage() {
     }
     setAiLoading(true);
     try {
-      const text = await askGemini(buildStructurePrompt(title));
+      const text = await askGemini(buildStructurePrompt(title), {
+        kind: "estrutura",
+        postId: editing?.id ?? null,
+        postTitle: title,
+      });
+
       if (!text) throw new Error("A IA não retornou conteúdo");
       wsApi.current?.setRaw(text);
       toast.success("Estrutura gerada com IA!");
