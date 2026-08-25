@@ -154,6 +154,9 @@ function PostsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const wsApi = useRef<WorkspaceApi | null>(null);
+
 
   const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
   const [catFilter, setCatFilter] = useState(search.categoria ?? "all");
