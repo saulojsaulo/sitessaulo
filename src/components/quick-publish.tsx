@@ -34,7 +34,7 @@ const defaultDate = () =>
     .slice(0, 16);
 
 /** Publicar agora / agendar o Artigo Pronto direto nos sites conectados. */
-export function QuickPublish({ postId, title, article, cover, tags }: Props) {
+export function QuickPublish({ postId, title, article, cover, tags, onStatusChange }: Props) {
   const connections = useWpConnections();
   const { save } = usePublicationMutations();
   const publish = useServerFn(publishWpPost);
