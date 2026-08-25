@@ -53,10 +53,22 @@ interface Props {
 const SYSTEM_PROMPT =
   "Você é um redator brasileiro especialista em SEO e conteúdo para blogs. Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.";
 
-export async function askGemini(prompt: string) {
-  const res = await generateText({ data: { prompt, system: SYSTEM_PROMPT } });
+export async function askGemini(
+  prompt: string,
+  meta?: { kind?: string; postId?: string | null; postTitle?: string | null },
+) {
+  const res = await generateText({
+    data: {
+      prompt,
+      system: SYSTEM_PROMPT,
+      kind: meta?.kind ?? "outro",
+      postId: meta?.postId ?? null,
+      postTitle: meta?.postTitle ?? null,
+    },
+  });
   return res.text;
 }
+
 
 
 const copy = async (text: string, message: string) => {
@@ -138,7 +150,12 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const generateSection = async (id: string) => {
     const section = wsRef.current.sections.find((s) => s.id === id);
     if (!section?.prompt.trim()) return;
-    const text = await askGemini(section.prompt);
+    const text = await askGemini(section.prompt, {
+      kind: "sessao",
+      postId,
+      postTitle: title,
+    });
+
     if (!text) throw new Error("A IA não retornou conteúdo");
     updateSection(id, { response: text });
   };

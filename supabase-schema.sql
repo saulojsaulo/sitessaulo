@@ -128,3 +128,32 @@ create policy "public access wp_connections" on public.wp_connections
   for all using (true) with check (true);
 create policy "public access wp_publications" on public.wp_publications
   for all using (true) with check (true);
+
+-- ============================================================
+-- Uso de IA (painel de consumo do Gemini)
+-- ============================================================
+create table if not exists public.ai_usage (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  kind text not null default 'outro',
+  post_id uuid,
+  post_title text,
+  model text not null,
+  prompt_tokens integer not null default 0,
+  completion_tokens integer not null default 0,
+  total_tokens integer not null default 0,
+  estimated boolean not null default false,
+  duration_ms integer not null default 0,
+  ok boolean not null default true,
+  error text
+);
+
+create index if not exists ai_usage_created_idx on public.ai_usage (created_at desc);
+
+grant select, insert, update, delete on public.ai_usage to anon, authenticated;
+grant all on public.ai_usage to service_role;
+
+alter table public.ai_usage enable row level security;
+
+create policy "public access ai_usage" on public.ai_usage
+  for all using (true) with check (true);
