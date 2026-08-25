@@ -643,6 +643,10 @@ function PostsPage() {
                   tags={draft.tags}
                   value={draft.content}
                   onChange={(content) => setDraft((d) => (d ? { ...d, content } : d))}
+                  onStatusChange={(status) => {
+                    setDraft((d) => (d ? { ...d, status } : d));
+                    if (editing?.id) updatePost(editing.id, { status });
+                  }}
                 />
               </div>
             </div>

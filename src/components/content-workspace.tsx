@@ -37,6 +37,7 @@ interface Props {
   title?: string;
   cover?: string | undefined;
   tags?: string[] | undefined;
+  onStatusChange?: (status: "artigo_completo" | "agendado" | "publicado") => void;
 }
 
 const copy = async (text: string, message: string) => {
@@ -48,7 +49,7 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
@@ -185,6 +186,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             className="gap-2"
             onClick={() => {
               commit({ ...ws, article: rebuilt, manual: false });
+              onStatusChange?.("artigo_completo");
               toast.success("Artigo reconstruído a partir das sessões");
             }}
           >
@@ -217,6 +219,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             article={article}
             cover={cover}
             tags={tags}
+            {...(onStatusChange ? { onStatusChange } : {})}
           />
         </div>
       </TabsContent>
