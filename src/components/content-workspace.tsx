@@ -150,7 +150,12 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const generateSection = async (id: string) => {
     const section = wsRef.current.sections.find((s) => s.id === id);
     if (!section?.prompt.trim()) return;
-    const text = await askGemini(section.prompt);
+    const text = await askGemini(section.prompt, {
+      kind: "sessao",
+      postId,
+      postTitle: title,
+    });
+
     if (!text) throw new Error("A IA não retornou conteúdo");
     updateSection(id, { response: text });
   };
