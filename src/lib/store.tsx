@@ -112,7 +112,7 @@ interface StoreValue extends Data {
   addBlog: (b: Omit<Blog, "id" | "createdAt" | "color"> & { color?: string }) => Blog;
   updateBlog: (id: string, patch: Partial<Blog>) => void;
   removeBlog: (id: string) => void;
-  addCategory: (c: Omit<Category, "id">) => void;
+  addCategory: (c: Omit<Category, "id">) => Category;
   updateCategory: (id: string, patch: Partial<Category>) => void;
   removeCategory: (id: string) => void;
   addPost: (p: Omit<Post, "id" | "createdAt">) => void;
