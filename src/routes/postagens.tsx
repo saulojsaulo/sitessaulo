@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Sparkles,
   Loader2,
+  Upload,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
