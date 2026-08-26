@@ -160,6 +160,7 @@ function PostsPage() {
   const [editing, setEditing] = useState<Post | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const wsApi = useRef<WorkspaceApi | null>(null);
 
 
