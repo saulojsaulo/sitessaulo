@@ -41,6 +41,7 @@ import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { WpPublishPanel } from "@/components/wp-publish";
+import { BulkUploadPosts } from "@/components/bulk-upload";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
 import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
