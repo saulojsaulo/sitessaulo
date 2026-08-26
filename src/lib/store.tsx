@@ -234,13 +234,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const addCategory = useCallback((c: Omit<Category, "id">) => {
+  const addCategory = useCallback((c: Omit<Category, "id">): Category => {
     const category: Category = { ...c, id: uid() };
     void supabase
       .from("categories")
       .insert(toCategoryRow(category))
       .then(({ error }) => logError("insert category", error));
     setData((d) => ({ ...d, categories: [...d.categories, category] }));
+    return category;
   }, []);
 
   const updateCategory = useCallback((id: string, patch: Partial<Category>) => {
