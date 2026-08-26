@@ -687,6 +687,10 @@ function PostsPage() {
                   content={draft.content}
                   cover={draft.cover}
                   tags={draft.tags}
+                  blogName={draft.blogId ? blogName(draft.blogId) : undefined}
+                  categoryName={
+                    draft.categoryId ? catName(draft.categoryId) : undefined
+                  }
                 />
               </div>
               <div className="space-y-2">

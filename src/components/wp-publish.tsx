@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ExternalLink, Loader2, Send, Plug } from "lucide-react";
@@ -36,6 +36,13 @@ interface Target {
   date: string;
 }
 
+const norm = (v: string) =>
+  v
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
 const defaultTarget = (title: string): Target => ({
   categoryIds: [],
   slug: slugify(title),
@@ -51,13 +58,28 @@ function TargetCard({
   title,
   target,
   onChange,
+  categoryName,
 }: {
   connection: WpConnectionRow;
   title: string;
   target: Target;
   onChange: (t: Target) => void;
+  categoryName?: string | undefined;
 }) {
   const meta = useWpSiteMeta(connection.id);
+  const autoCat = useRef(false);
+
+  // Autopreenche a categoria do site com a categoria escolhida na postagem.
+  useEffect(() => {
+    if (autoCat.current || !categoryName) return;
+    const list = meta.data?.categories ?? [];
+    if (list.length === 0) return;
+    autoCat.current = true;
+    if (target.categoryIds.length > 0) return;
+    const match = list.find((c) => norm(c.name) === norm(categoryName));
+    if (match) onChange({ ...target, categoryIds: [match.id] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meta.data?.categories, categoryName]);
   const [newCat, setNewCat] = useState("");
   const createTerm = useServerFn(createWpTerm);
   const [creating, setCreating] = useState(false);
@@ -221,12 +243,16 @@ export function WpPublishPanel({
   content,
   cover,
   tags,
+  blogName,
+  categoryName,
 }: {
   postId: string | null;
   title: string;
   content: string;
   cover?: string | undefined;
   tags: string[];
+  blogName?: string | undefined;
+  categoryName?: string | undefined;
 }) {
   const connections = useWpConnections();
   const publications = useWpPublications();
@@ -239,6 +265,22 @@ export function WpPublishPanel({
   const [sending, setSending] = useState(false);
 
   const rows = (connections.data ?? []).filter((c) => c.status !== "erro" || true);
+  const autoBlog = useRef(false);
+
+  // Autosseleciona a conexão do blog escolhido no topo do formulário.
+  useEffect(() => {
+    if (autoBlog.current || !blogName || rows.length === 0) return;
+    autoBlog.current = true;
+    if (selected.length > 0) return;
+    const match =
+      rows.find((c) => norm(c.name) === norm(blogName)) ??
+      rows.find((c) => norm(c.name).includes(norm(blogName)));
+    if (match) {
+      setSelected([match.id]);
+      setTargets((t) => (t[match.id] ? t : { ...t, [match.id]: defaultTarget(title) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows.length, blogName]);
   const article = parseWorkspace(content).article.trim();
 
   const toggle = (id: string) => {
@@ -355,6 +397,7 @@ export function WpPublishPanel({
             connection={conn}
             title={title}
             target={targets[id] ?? defaultTarget(title)}
+            categoryName={categoryName}
             onChange={(t) => setTargets((prev) => ({ ...prev, [id]: t }))}
           />
         );
