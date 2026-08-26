@@ -730,6 +730,8 @@ function PostsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkUploadPosts open={bulkOpen} onOpenChange={setBulkOpen} />
     </>
   );
 }
