@@ -359,9 +359,14 @@ function PostsPage() {
         title="Postagens"
         subtitle={`${filtered.length} de ${posts.length} postagens`}
         action={
-          <Button onClick={startCreate} className="gap-2">
-            <Plus className="size-4" /> Nova postagem
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={startCreate} className="gap-2">
+              <Plus className="size-4" /> Nova postagem
+            </Button>
+            <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
+              <Upload className="size-4" /> Upload de novas postagens
+            </Button>
+          </div>
         }
       />
 
