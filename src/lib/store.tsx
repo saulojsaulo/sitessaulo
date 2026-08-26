@@ -112,7 +112,7 @@ interface StoreValue extends Data {
   addBlog: (b: Omit<Blog, "id" | "createdAt" | "color"> & { color?: string }) => Blog;
   updateBlog: (id: string, patch: Partial<Blog>) => void;
   removeBlog: (id: string) => void;
-  addCategory: (c: Omit<Category, "id">) => void;
+  addCategory: (c: Omit<Category, "id">) => Category;
   updateCategory: (id: string, patch: Partial<Category>) => void;
   removeCategory: (id: string) => void;
   addPost: (p: Omit<Post, "id" | "createdAt">) => void;
@@ -234,13 +234,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const addCategory = useCallback((c: Omit<Category, "id">) => {
+  const addCategory = useCallback((c: Omit<Category, "id">): Category => {
     const category: Category = { ...c, id: uid() };
     void supabase
       .from("categories")
       .insert(toCategoryRow(category))
       .then(({ error }) => logError("insert category", error));
     setData((d) => ({ ...d, categories: [...d.categories, category] }));
+    return category;
   }, []);
 
   const updateCategory = useCallback((id: string, patch: Partial<Category>) => {

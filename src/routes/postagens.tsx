@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Sparkles,
   Loader2,
+  Upload,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { WpPublishPanel } from "@/components/wp-publish";
+import { BulkUploadPosts } from "@/components/bulk-upload";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
 import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
@@ -159,6 +161,7 @@ function PostsPage() {
   const [editing, setEditing] = useState<Post | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const wsApi = useRef<WorkspaceApi | null>(null);
 
 
@@ -359,9 +362,14 @@ function PostsPage() {
         title="Postagens"
         subtitle={`${filtered.length} de ${posts.length} postagens`}
         action={
-          <Button onClick={startCreate} className="gap-2">
-            <Plus className="size-4" /> Nova postagem
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={startCreate} className="gap-2">
+              <Plus className="size-4" /> Nova postagem
+            </Button>
+            <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
+              <Upload className="size-4" /> Upload de novas postagens
+            </Button>
+          </div>
         }
       />
 
@@ -723,6 +731,8 @@ function PostsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkUploadPosts open={bulkOpen} onOpenChange={setBulkOpen} />
     </>
   );
 }
