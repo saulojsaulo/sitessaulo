@@ -130,7 +130,7 @@ export async function generateWithGemini(
 ): Promise<string> {
   const ownKey = process.env["GEMINI_API_KEY"];
   if (ownKey) {
-    const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
+    const model = process.env["GEMINI_MODEL"] || "gemini-3.6-flash";
     return generateWithGoogleDirect(ownKey, model, prompt, system, meta);
   }
 
