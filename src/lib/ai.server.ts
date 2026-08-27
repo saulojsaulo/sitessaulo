@@ -123,16 +123,146 @@ async function generateWithGoogleDirect(
   return out;
 }
 
+/** Chamada à Groq (API compatível com OpenAI, streaming SSE). */
+async function generateWithGroq(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  system: string | undefined,
+  meta: AiMeta,
+): Promise<string> {
+  const started = Date.now();
+  const base = {
+    kind: meta.kind ?? "outro",
+    post_id: meta.postId ?? null,
+    post_title: meta.postTitle ?? null,
+    model: `groq/${model}`,
+  };
+
+  const fail = async (message: string): Promise<never> => {
+    await logAiUsage({
+      ...base,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      estimated: true,
+      duration_ms: Date.now() - started,
+      ok: false,
+      error: message.slice(0, 500),
+    });
+    throw new Error(message);
+  };
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        stream_options: { include_usage: true },
+        messages: [
+          ...(system ? [{ role: "system", content: system }] : []),
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+  } catch (e) {
+    return fail(`Falha de rede ao chamar a Groq: ${e instanceof Error ? e.message : "erro"}`);
+  }
+
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    if (res.status === 401) return fail("Chave GROQ_API_KEY inválida.");
+    if (res.status === 429) return fail("Limite de requisições da sua conta Groq atingido.");
+    if (res.status === 404)
+      return fail(`Modelo Groq inválido: ${model}. Ajuste a secret GROQ_MODEL.`);
+    return fail(`Groq [${res.status}]: ${body.slice(0, 300)}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null =
+    null;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (payload === "" || payload === "[DONE]") continue;
+      try {
+        const json = JSON.parse(payload) as {
+          choices?: { delta?: { content?: string } }[];
+          usage?: {
+            prompt_tokens?: number;
+            completion_tokens?: number;
+            total_tokens?: number;
+          } | null;
+          x_groq?: {
+            usage?: {
+              prompt_tokens?: number;
+              completion_tokens?: number;
+              total_tokens?: number;
+            } | null;
+          };
+        };
+        const delta = json.choices?.[0]?.delta?.content;
+        if (delta) text += delta;
+        if (json.usage) usage = json.usage;
+        else if (json.x_groq?.usage) usage = json.x_groq.usage;
+      } catch {
+        // fragmento incompleto
+      }
+    }
+  }
+
+  const out = text.trim();
+  const promptTokens = usage?.prompt_tokens ?? estimateTokens((system ?? "") + prompt);
+  const completionTokens = usage?.completion_tokens ?? estimateTokens(out);
+
+  await logAiUsage({
+    ...base,
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: usage?.total_tokens ?? promptTokens + completionTokens,
+    estimated: usage == null,
+    duration_ms: Date.now() - started,
+    ok: true,
+    error: null,
+  });
+
+  return out;
+}
+
 export async function generateWithGemini(
   prompt: string,
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
+  const groqKey = process.env["GROQ_API_KEY"];
+  if (groqKey) {
+    const model = process.env["GROQ_MODEL"] || "llama-3.3-70b-versatile";
+    return generateWithGroq(groqKey, model, prompt, system, meta);
+  }
+
   const ownKey = process.env["GEMINI_API_KEY"];
   if (ownKey) {
     const model = process.env["GEMINI_MODEL"] || "gemini-3.6-flash";
     return generateWithGoogleDirect(ownKey, model, prompt, system, meta);
   }
+
 
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new Error("LOVABLE_API_KEY não configurada");
