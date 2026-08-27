@@ -253,7 +253,8 @@ export async function generateWithGemini(
 ): Promise<string> {
   const groqKey = process.env["GROQ_API_KEY"];
   if (groqKey) {
-    const model = process.env["GROQ_MODEL"] || "llama-3.3-70b-versatile";
+    const model = process.env["GROQ_MODEL"] || "openai/gpt-oss-120b";
+
     return generateWithGroq(groqKey, model, prompt, system, meta);
   }
 
