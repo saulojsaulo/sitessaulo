@@ -215,7 +215,7 @@ function PostsPage() {
       }
       return true;
     });
-    return [...list].sort((a, b) => {
+    const sorted = [...list].sort((a, b) => {
       switch (sort) {
         case "date-asc":
           return a.publishDate.localeCompare(b.publishDate);
@@ -229,7 +229,33 @@ function PostsPage() {
           return b.publishDate.localeCompare(a.publishDate);
       }
     });
-  }, [posts, blogFilter, catFilter, statusFilter, tagFilter, query, sort]);
+
+    // Blog específico + todas as categorias: intercala em round-robin
+    // (Cat A, Cat B, Cat C, ... e volta para Cat A) para nunca repetir
+    // duas postagens da mesma categoria em sequência.
+    if (blogFilter === "all" || catFilter !== "all") return sorted;
+
+    const groups = new Map<string, Post[]>();
+    for (const p of sorted) {
+      const key = p.categoryId ?? "__none__";
+      const bucket = groups.get(key);
+      if (bucket) bucket.push(p);
+      else groups.set(key, [p]);
+    }
+    const buckets = [...groups.entries()]
+      .sort((a, b) => catName(a[0]).localeCompare(catName(b[0])))
+      .map(([, v]) => v);
+
+    const rotated: Post[] = [];
+    for (let i = 0; rotated.length < sorted.length; i++) {
+      for (const bucket of buckets) {
+        const item = bucket[i];
+        if (item) rotated.push(item);
+      }
+    }
+    return rotated;
+  }, [posts, blogFilter, catFilter, statusFilter, tagFilter, query, sort, categories]);
+
 
   const startCreate = () => {
     if (!activeBlog) {
