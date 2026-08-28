@@ -150,11 +150,14 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const generateSection = async (id: string) => {
     const section = wsRef.current.sections.find((s) => s.id === id);
     if (!section?.prompt.trim()) return;
-    const text = await askGemini(section.prompt, {
+    const guidance =
+      '\n\nRegras de formatação: logo após o título (##), escreva um parágrafo introdutório curto (2 a 4 frases) apresentando o assunto do título antes de iniciar qualquer subtítulo (###). Só depois desenvolva os subtítulos. Não adicione dicas de SEO nem comentários ao publisher.';
+    const text = await askGemini(section.prompt + guidance, {
       kind: "sessao",
       postId,
       postTitle: title,
     });
+
 
     if (!text) throw new Error("A IA não retornou conteúdo");
     updateSection(id, { response: text });
