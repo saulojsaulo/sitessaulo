@@ -99,8 +99,19 @@ export function articleToHtml(text: string): string {
     }
   };
 
-  for (const raw of lines) {
-    const line = raw.trim();
+  /** "| a | b |" -> ["a","b"] */
+  const cells = (line: string) =>
+    line
+      .replace(/^\s*\|/, "")
+      .replace(/\|\s*$/, "")
+      .split("|")
+      .map((c) => c.trim());
+
+  const isRow = (line: string) => /\|/.test(line) && /^\|?[^|]*\|/.test(line);
+  const isDivider = (line: string) => /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line);
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]!.trim();
     if (line === "") {
       flush();
       continue;
@@ -110,6 +121,31 @@ export function articleToHtml(text: string): string {
       flush();
       const level = heading[1]!.length;
       out.push(`<h${level}>${inline(heading[2]!)}</h${level}>`);
+      continue;
+    }
+    // Tabela Markdown: linha de cabeçalho + linha separadora + linhas de dados.
+    const next = lines[i + 1]?.trim() ?? "";
+    if (isRow(line) && isDivider(next)) {
+      flush();
+      const head = cells(line);
+      const body: string[][] = [];
+      let j = i + 2;
+      for (; j < lines.length; j += 1) {
+        const r = lines[j]!.trim();
+        if (r === "" || !isRow(r) || isDivider(r)) break;
+        body.push(cells(r));
+      }
+      i = j - 1;
+      const thead = `<thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead>`;
+      const tbody = body.length
+        ? `<tbody>${body
+            .map((r) => {
+              const row = Array.from({ length: head.length }, (_, k) => r[k] ?? "");
+              return `<tr>${row.map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`;
+            })
+            .join("")}</tbody>`
+        : "";
+      out.push(`<figure class="wp-block-table"><table>${thead}${tbody}</table></figure>`);
       continue;
     }
     const item = /^[-*•]\s+(.+)$/.exec(line);
