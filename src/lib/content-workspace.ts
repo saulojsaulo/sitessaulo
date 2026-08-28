@@ -84,11 +84,10 @@ export function serializeWorkspace(ws: Workspace): string {
   return `${ws.article}\n${MARKER_START}${meta}${MARKER_END}`;
 }
 
-/** Linha de comando: entre aspas e começando com "Gere o texto ..." */
+/** Linha de comando: "Gere o texto ..." com ou sem aspas ao redor. */
 const isCommandLine = (line: string) => {
-  const t = line.trim();
-  if (!t.startsWith('"') && !t.startsWith("“")) return false;
-  return /gere\s+o\s+texto/i.test(t);
+  const t = line.trim().replace(/^["“”'`*\s]+/, "");
+  return /^gere\s+o\s+texto/i.test(t);
 };
 
 const isTitleLine = (line: string) => /^\s*##(?!#)/.test(line);
