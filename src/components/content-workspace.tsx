@@ -29,6 +29,12 @@ import {
   type Section,
   type Workspace,
 } from "@/lib/content-workspace";
+import {
+  SYSTEM_PROMPT,
+  buildCohesionPrompt,
+  buildSectionPrompt,
+  summarizeOutline,
+} from "@/lib/prompts";
 
 export interface WorkspaceApi {
   /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
