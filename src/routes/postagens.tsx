@@ -174,6 +174,12 @@ function PostsPage() {
 
   const blogName = (id: string) => blogs.find((b) => b.id === id)?.name ?? "—";
   const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
+  /** Contexto do blog (nicho) usado nos prompts de IA. */
+  const siteCtx = (blogId?: string) => {
+    const blog = blogs.find((b) => b.id === blogId);
+    if (!blog) return {};
+    return { niche: blog.description?.trim() || blog.name };
+  };
 
   const gaProps = useBlogProperties();
   const gaIds = (gaProps.data ?? [])
