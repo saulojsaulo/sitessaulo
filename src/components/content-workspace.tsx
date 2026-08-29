@@ -322,6 +322,20 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             type="button"
             variant="secondary"
             className="gap-2"
+            disabled={!article.trim() || reviewing}
+            onClick={() => void reviewArticle()}
+          >
+            {reviewing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Sparkles className="size-4" />
+            )}
+            Revisar coesão com IA
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="gap-2"
             onClick={() => {
               commit({ ...ws, article: rebuilt, manual: false });
               onStatusChange?.("artigo_completo");
