@@ -14,7 +14,8 @@ Regras de estilo OBRIGATÓRIAS:
 - Nunca insira dicas de SEO, metadados, ou qualquer comentário sobre o próprio processo de escrita no texto final.
 - Nunca inclua conteúdo, exemplos ou recomendações de ferramentas/temas que não tenham relação direta e específica com o título do artigo. Se não tiver certeza da relevância, prefira aprofundar o tema principal em vez de generalizar.
 - Não trate de temas sensíveis para monetização (saúde grave/diagnóstico médico, conteúdo adulto, apostas, armas, discurso de ódio, finanças de risco sem disclaimer) mesmo que tangenciais ao tema.
-- NUNCA invente estatísticas, percentuais, "estudos internos", pesquisas ou "casos reais" com nomes de empresas/instituições fictícias apresentados como fato verificável. Se quiser ilustrar com um número ou cenário, deixe claro que é um exemplo hipotético (ex: "imagine um contrato com...", "num cenário comum de..."), nunca atribua a uma fonte, estudo ou empresa que você não pode confirmar que existe.
+- NUNCA invente estatísticas, percentuais, "estudos internos", pesquisas, casos reais com nomes de empresas/instituições fictícias, ou códigos/padrões/normas técnicas apresentados como se fossem oficiais (ex: tabelas de códigos numéricos, fórmulas, classificações) sem ter certeza de que existem de fato. Se quiser ilustrar com um número, código ou cenário, deixe claro que é um exemplo hipotético (ex: "imagine um contrato com...", "num cenário comum de...", "suponha que o código exibido seja..."), nunca atribua a uma fonte, estudo, empresa ou padrão oficial que você não pode confirmar que existe.
+- Cuidado redobrado com fatos sensíveis ao tempo: regras, produtos, taxas, prazos ou serviços (especialmente em temas financeiros, tributários, jurídicos ou regulados) podem ter mudado ou sido descontinuados depois do seu treinamento. Ao mencionar algo desse tipo, prefira formulações que não dependam de estar 100% atual (descreva o conceito sem afirmar categoricamente que ainda está em vigor) ou sinalize que a informação deve ser confirmada em fonte oficial antes da publicação.
 - O título de cada seção (o texto que vem depois de "##") deve ser um título editorial natural sobre o assunto. Nunca descreva ali a instrução que gerou a seção (ex: nunca escreva algo como "Conclusão curta sobre..." ou "Resumo dos pontos discutidos acima") — escreva como um título de artigo de verdade.
 - Respeite a hierarquia de headings: nunca use "###" (H3) sem que exista um "##" (H2) pai antes dele. A introdução também precisa de um "##" próprio.
 - Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.`;
@@ -103,7 +104,9 @@ Regras de formatação: logo após o título (##), escreva um parágrafo introdu
 Lembre-se:
 - Fique 100% dentro do tema "${title}". Não mencione ferramentas, exemplos ou dicas de assuntos não relacionados (ex: marketing digital genérico, automação de vendas), a menos que a seção seja literalmente sobre isso.
 - Não repita ideias já cobertas em outras seções do resumo acima.${toolRule}
-- Não invente estatísticas, estudos, pesquisas ou "casos reais" de empresas. Use apenas exemplos claramente hipotéticos.
+- Não invente estatísticas, estudos, pesquisas, "casos reais" de empresas nem códigos/padrões técnicos apresentados como oficiais. Use apenas exemplos claramente hipotéticos.
+- Se mencionar regras, produtos, taxas, prazos ou serviços que podem ter mudado (temas financeiros, tributários, jurídicos ou regulados), não afirme categoricamente que continuam vigentes — descreva o conceito de forma atemporal.
+- Mantenha os exemplos ilustrativos internamente consistentes (nomes e gênero gramatical coerentes, valores que fecham nas contas, datas coerentes entre si).
 - O título depois de "##" deve ser editorial e natural; nunca ecoe a instrução recebida (ex: "Conclusão curta sobre...").
 - Não adicione dicas de SEO, comentários sobre o processo ou qualquer texto fora do conteúdo do artigo.`;
 }
@@ -125,10 +128,12 @@ export function buildCohesionPrompt(title: string, article: string): string {
 2. Identificar e sinalizar qualquer trecho fora do escopo do tema "${title}" (se encontrar, substitua por conteúdo relevante ao tema, mantendo o tamanho da seção).
 3. Garantir transições naturais entre seções, sem repetir a mesma estrutura de frase mais de duas vezes no artigo inteiro.
 4. Corrigir qualquer erro de gramática, concordância, ortografia ou frase incompleta/quebrada (ex: uma pergunta ou frase que começa faltando um verbo ou sujeito).
-5. Localizar qualquer estatística, percentual, "estudo", "pesquisa" ou "caso real" com empresa/instituição citada como fonte. Se a fonte não for verificável ou parecer inventada, reescreva o trecho como exemplo claramente hipotético (ex: "imagine um cenário em que...") ao invés de apresentá-lo como fato ocorrido.
+5. Localizar qualquer estatística, percentual, "estudo", "pesquisa", "caso real" ou código/padrão técnico apresentado como oficial, com fonte não verificável. Se a fonte não for verificável ou parecer inventada, reescreva o trecho como exemplo claramente hipotético (ex: "imagine um cenário em que...") ao invés de apresentá-lo como fato ocorrido.
 6. Verificar se algum título de seção descreve a própria instrução que o gerou (ex: "Conclusão curta sobre...", "Resumo dos pontos discutidos"). Se encontrar, reescreva como um título editorial natural.
 7. Confirmar que a introdução (antes da primeira seção numerada) não tem "###" solto sem um "##" pai correspondente.
-8. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
+8. Revisar a consistência interna dos exemplos ilustrativos (nomes, gênero gramatical, valores que devem bater com contas simples, datas coerentes entre si). Corrija qualquer detalhe que não faça sentido lógico dentro do próprio exemplo.
+9. Sinalizar qualquer afirmação sobre regras, produtos, taxas, prazos ou serviços (especialmente financeiros, tributários, jurídicos ou regulados) que dependa de estar atualizada — especialmente se o artigo tratar algo como "atual" ou "padrão" sem qualificar. Adicione um comentário <!-- VERIFICAR: [trecho] --> logo antes dessas frases para revisão humana antes de publicar, sem alterar o texto visível.
+10. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
 
 REQUISITO DE TAMANHO (obrigatório): o artigo revisado deve ter NO MÍNIMO ${MIN_ARTICLE_WORDS} palavras. O texto atual tem aproximadamente ${countWords(article)} palavras. Se estiver abaixo disso, aprofunde o conteúdo das seções existentes com explicações mais detalhadas, passos concretos e exemplos hipotéticos relevantes ao tema — sem criar novas seções, sem repetir ideias e sem enrolação.
 
