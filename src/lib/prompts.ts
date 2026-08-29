@@ -128,10 +128,12 @@ export function buildCohesionPrompt(title: string, article: string): string {
 2. Identificar e sinalizar qualquer trecho fora do escopo do tema "${title}" (se encontrar, substitua por conteúdo relevante ao tema, mantendo o tamanho da seção).
 3. Garantir transições naturais entre seções, sem repetir a mesma estrutura de frase mais de duas vezes no artigo inteiro.
 4. Corrigir qualquer erro de gramática, concordância, ortografia ou frase incompleta/quebrada (ex: uma pergunta ou frase que começa faltando um verbo ou sujeito).
-5. Localizar qualquer estatística, percentual, "estudo", "pesquisa" ou "caso real" com empresa/instituição citada como fonte. Se a fonte não for verificável ou parecer inventada, reescreva o trecho como exemplo claramente hipotético (ex: "imagine um cenário em que...") ao invés de apresentá-lo como fato ocorrido.
+5. Localizar qualquer estatística, percentual, "estudo", "pesquisa", "caso real" ou código/padrão técnico apresentado como oficial, com fonte não verificável. Se a fonte não for verificável ou parecer inventada, reescreva o trecho como exemplo claramente hipotético (ex: "imagine um cenário em que...") ao invés de apresentá-lo como fato ocorrido.
 6. Verificar se algum título de seção descreve a própria instrução que o gerou (ex: "Conclusão curta sobre...", "Resumo dos pontos discutidos"). Se encontrar, reescreva como um título editorial natural.
 7. Confirmar que a introdução (antes da primeira seção numerada) não tem "###" solto sem um "##" pai correspondente.
-8. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
+8. Revisar a consistência interna dos exemplos ilustrativos (nomes, gênero gramatical, valores que devem bater com contas simples, datas coerentes entre si). Corrija qualquer detalhe que não faça sentido lógico dentro do próprio exemplo.
+9. Sinalizar qualquer afirmação sobre regras, produtos, taxas, prazos ou serviços (especialmente financeiros, tributários, jurídicos ou regulados) que dependa de estar atualizada — especialmente se o artigo tratar algo como "atual" ou "padrão" sem qualificar. Adicione um comentário <!-- VERIFICAR: [trecho] --> logo antes dessas frases para revisão humana antes de publicar, sem alterar o texto visível.
+10. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
 
 REQUISITO DE TAMANHO (obrigatório): o artigo revisado deve ter NO MÍNIMO ${MIN_ARTICLE_WORDS} palavras. O texto atual tem aproximadamente ${countWords(article)} palavras. Se estiver abaixo disso, aprofunde o conteúdo das seções existentes com explicações mais detalhadas, passos concretos e exemplos hipotéticos relevantes ao tema — sem criar novas seções, sem repetir ideias e sem enrolação.
 
