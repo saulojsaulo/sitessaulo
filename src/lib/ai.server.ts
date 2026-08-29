@@ -205,6 +205,7 @@ async function generateWithGroq(
       try {
         const json = JSON.parse(payload) as {
           choices?: { delta?: { content?: string } }[];
+          error?: { message?: string; code?: string } | null;
           usage?: {
             prompt_tokens?: number;
             completion_tokens?: number;
@@ -218,6 +219,15 @@ async function generateWithGroq(
             } | null;
           };
         };
+        // A Groq envia falhas no meio do stream (ex.: limite diário de tokens).
+        if (json.error) {
+          const msg = json.error.message ?? "erro desconhecido";
+          return fail(
+            json.error.code === "rate_limit_exceeded"
+              ? `Limite da sua conta Groq atingido: ${msg}`
+              : `Groq: ${msg}`,
+          );
+        }
         const delta = json.choices?.[0]?.delta?.content;
         if (delta) text += delta;
         if (json.usage) usage = json.usage;
@@ -229,6 +239,7 @@ async function generateWithGroq(
   }
 
   const out = text.trim();
+  if (!out) return fail("A Groq encerrou a resposta sem conteúdo. Tente novamente.");
   const promptTokens = usage?.prompt_tokens ?? estimateTokens((system ?? "") + prompt);
   const completionTokens = usage?.completion_tokens ?? estimateTokens(out);
 
