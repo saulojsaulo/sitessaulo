@@ -743,6 +743,7 @@ function PostsPage() {
 
                   postId={editing?.id ?? null}
                   title={draft.title}
+                  {...siteCtx(draft.blogId)}
                   cover={draft.cover}
                   tags={draft.tags}
                   value={draft.content}
