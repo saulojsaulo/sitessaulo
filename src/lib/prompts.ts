@@ -113,9 +113,13 @@ Regras de formatação: logo após o título (##), escreva um parágrafo introdu
 Lembre-se:
 - Fique 100% dentro do tema "${title}". Não mencione ferramentas, exemplos ou dicas de assuntos não relacionados (ex: marketing digital genérico, automação de vendas), a menos que a seção seja literalmente sobre isso.
 - Não repita ideias já cobertas em outras seções do resumo acima.${toolRule}
+- Não contradiga nenhum fato, prazo ou descrição de processo já afirmado no texto das seções anteriores.
+- Evite afirmar prazos, percentuais, padrões de nomenclatura ou regras de processo muito específicos como se fossem garantidos ("normalmente até 30 dias", "o sistema concatena X com Y", "a razão social segue o padrão NOME – MEI"), a menos que tenha certeza — prefira formulações cautelosas ("costuma", "pode variar conforme o órgão ou a instituição").
 - Não invente estatísticas, estudos, pesquisas, "casos reais" de empresas nem códigos/padrões técnicos apresentados como oficiais. Use apenas exemplos claramente hipotéticos.
 - Se mencionar regras, produtos, taxas, prazos ou serviços que podem ter mudado (temas financeiros, tributários, jurídicos ou regulados), não afirme categoricamente que continuam vigentes — descreva o conceito de forma atemporal.
 - Mantenha os exemplos ilustrativos internamente consistentes (nomes e gênero gramatical coerentes, valores que fecham nas contas, datas coerentes entre si).
+- Se a seção tiver FAQ, garanta que cada pergunta é uma frase completa (ex: "É possível...", "É necessário...", nunca "possível...").
+- Escreva "seção" ao se referir a uma parte do texto (nunca "sessão").
 - O título depois de "##" deve ser editorial e natural; nunca ecoe a instrução recebida (ex: "Conclusão curta sobre...").
 - Não adicione dicas de SEO, comentários sobre o processo ou qualquer texto fora do conteúdo do artigo.`;
 }
