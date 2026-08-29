@@ -14,7 +14,11 @@ Regras de estilo OBRIGATÓRIAS:
 - Nunca insira dicas de SEO, metadados, ou qualquer comentário sobre o próprio processo de escrita no texto final.
 - Nunca inclua conteúdo, exemplos ou recomendações de ferramentas/temas que não tenham relação direta e específica com o título do artigo. Se não tiver certeza da relevância, prefira aprofundar o tema principal em vez de generalizar.
 - Não trate de temas sensíveis para monetização (saúde grave/diagnóstico médico, conteúdo adulto, apostas, armas, discurso de ódio, finanças de risco sem disclaimer) mesmo que tangenciais ao tema.
+- NUNCA invente estatísticas, percentuais, "estudos internos", pesquisas ou "casos reais" com nomes de empresas/instituições fictícias apresentados como fato verificável. Se quiser ilustrar com um número ou cenário, deixe claro que é um exemplo hipotético (ex: "imagine um contrato com...", "num cenário comum de..."), nunca atribua a uma fonte, estudo ou empresa que você não pode confirmar que existe.
+- O título de cada seção (o texto que vem depois de "##") deve ser um título editorial natural sobre o assunto. Nunca descreva ali a instrução que gerou a seção (ex: nunca escreva algo como "Conclusão curta sobre..." ou "Resumo dos pontos discutidos acima") — escreva como um título de artigo de verdade.
+- Respeite a hierarquia de headings: nunca use "###" (H3) sem que exista um "##" (H2) pai antes dele. A introdução também precisa de um "##" próprio.
 - Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.`;
+
 
 export interface SiteContext {
   /** Nicho/assunto do blog (ex.: nome ou descrição do blog). */
