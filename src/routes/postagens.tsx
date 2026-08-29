@@ -45,6 +45,7 @@ import { BulkUploadPosts } from "@/components/bulk-upload";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
 import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import { buildStructurePrompt } from "@/lib/prompts";
 import {
   daysAgo,
   iso,
@@ -96,8 +97,7 @@ interface Draft {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const buildStructurePrompt = (title: string) =>
-  `Gere uma outline (estrutura de artigo para blog) com a palavra-chave "${title}".\n\nPara cada seção da estrutura (título + subtítulos), enumere cada seção, título é "1" por exemplo e Subtítulo "1.1". Adicione acima do título da sessão o seguinte prompt — lembre-se, o prompt abaixo vai acima do título da sessão, e não dos subtítulos:\n\n"Gere o texto para a seção do blog (na frente do Título adicione "##" e na frente de cada subtítulo adicione "###":"\n\nNão adicione dicas de SEO, nem qualquer outra informação ao publisher, esse texto integrará o artigo que será publicado no site.`;
+
 
 const buildCoverImagePrompt = (title: string, category: string) =>
   `Crie uma imagem fotográfica profissional e realista, no estilo de banco de imagens premium (como Unsplash ou Shutterstock), para ser usada como imagem de destaque de um artigo de blog.\n\nTema do artigo: "${title}"\n\nCategoria: ${category}\n\nRequisitos obrigatórios:\n\n- Dimensão: 600x400 pixels (proporção 3:2, horizontal)\n\n- Estilo: fotografia realista, com iluminação natural, profundidade de campo e textura autêntica — como se tivesse sido tirada com uma câmera profissional\n\n- NÃO deve parecer gerada por IA: evite texturas plásticas, simetria perfeita demais, pele/objetos "lisos" artificiais, mãos ou rostos distorcidos, ou composições genéricas típicas de IA\n\n- NÃO incluir nenhum texto, letras, números, logotipos, marcas d'água ou elementos gráficos com informação escrita\n\n- NÃO incluir elementos sensíveis, violentos, sexuais, chocantes, discriminatórios ou controversos, pois o site é monetizado com Google AdSense e precisa seguir as políticas de conteúdo do Google\n\n- Composição limpa, com foco claro no assunto principal relacionado ao título e à categoria\n\n- Cores equilibradas e naturais, adequadas para uso editorial/jornalístico\n\n- Evitar qualquer referência a marcas registradas, personagens protegidos por direitos autorais ou pessoas reais identificáveis\n\nGere uma imagem que represente visualmente o conceito central do título de forma direta, profissional e adequada para um artigo de blog nessa categoria.`;
@@ -174,6 +174,12 @@ function PostsPage() {
 
   const blogName = (id: string) => blogs.find((b) => b.id === id)?.name ?? "—";
   const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
+  /** Contexto do blog (nicho) usado nos prompts de IA. */
+  const siteCtx = (blogId?: string) => {
+    const blog = blogs.find((b) => b.id === blogId);
+    if (!blog) return {};
+    return { niche: blog.description?.trim() || blog.name };
+  };
 
   const gaProps = useBlogProperties();
   const gaIds = (gaProps.data ?? [])
@@ -337,7 +343,7 @@ function PostsPage() {
       toast.error("Preencha o título antes de gerar o prompt");
       return;
     }
-    const text = buildStructurePrompt(title);
+    const text = buildStructurePrompt(title, siteCtx(draft.blogId));
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Prompt copiado!");
@@ -360,7 +366,7 @@ function PostsPage() {
     }
     setAiLoading(true);
     try {
-      const text = await askGemini(buildStructurePrompt(title), {
+      const text = await askGemini(buildStructurePrompt(title, siteCtx(draft.blogId)), {
         kind: "estrutura",
         postId: editing?.id ?? null,
         postTitle: title,
@@ -737,6 +743,7 @@ function PostsPage() {
 
                   postId={editing?.id ?? null}
                   title={draft.title}
+                  {...siteCtx(draft.blogId)}
                   cover={draft.cover}
                   tags={draft.tags}
                   value={draft.content}

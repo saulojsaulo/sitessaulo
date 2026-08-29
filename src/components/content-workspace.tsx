@@ -29,6 +29,12 @@ import {
   type Section,
   type Workspace,
 } from "@/lib/content-workspace";
+import {
+  SYSTEM_PROMPT,
+  buildCohesionPrompt,
+  buildSectionPrompt,
+  summarizeOutline,
+} from "@/lib/prompts";
 
 export interface WorkspaceApi {
   /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
@@ -46,12 +52,16 @@ interface Props {
   cover?: string | undefined;
   tags?: string[] | undefined;
   onStatusChange?: (status: "artigo_completo" | "agendado" | "publicado") => void;
+  /** Nicho do blog, usado para dar contexto aos prompts de IA. */
+  niche?: string | undefined;
+  /** Ferramenta própria do site que pode ser citada uma vez no artigo. */
+  tool?: string | undefined;
   /** Expõe ações do workspace para a tela de edição. */
   onReady?: (api: WorkspaceApi) => void;
 }
 
-const SYSTEM_PROMPT =
-  "Você é um redator brasileiro especialista em SEO e conteúdo para blogs. Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.";
+
+
 
 export async function askGemini(
   prompt: string,
@@ -80,11 +90,13 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange, onReady }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, niche, tool, onStatusChange, onReady }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+
   const loadedFor = useRef(resetKey);
   const wsRef = useRef(ws);
   wsRef.current = ws;
@@ -150,18 +162,40 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const generateSection = async (id: string) => {
     const section = wsRef.current.sections.find((s) => s.id === id);
     if (!section?.prompt.trim()) return;
-    const guidance =
-      '\n\nRegras de formatação: logo após o título (##), escreva um parágrafo introdutório curto (2 a 4 frases) apresentando o assunto do título antes de iniciar qualquer subtítulo (###). Só depois desenvolva os subtítulos. Não adicione dicas de SEO nem comentários ao publisher.';
-    const text = await askGemini(section.prompt + guidance, {
-      kind: "sessao",
-      postId,
-      postTitle: title,
-    });
-
+    const outline = summarizeOutline(wsRef.current.sections.map((s) => s.prompt));
+    const text = await askGemini(
+      buildSectionPrompt(title, outline, section.prompt, { niche, tool }),
+      {
+        kind: "sessao",
+        postId,
+        postTitle: title,
+      },
+    );
 
     if (!text) throw new Error("A IA não retornou conteúdo");
     updateSection(id, { response: text });
   };
+
+  const reviewArticle = async () => {
+    const current = cleanHeadings(wsRef.current.manual ? wsRef.current.article : buildArticle(wsRef.current.sections));
+    if (!current.trim()) return;
+    setReviewing(true);
+    try {
+      const text = await askGemini(buildCohesionPrompt(title, current), {
+        kind: "revisao",
+        postId,
+        postTitle: title,
+      });
+      if (!text) throw new Error("A IA não retornou conteúdo");
+      commit({ ...wsRef.current, article: text, manual: true });
+      toast.success("Artigo revisado pela IA");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao revisar o artigo");
+    } finally {
+      setReviewing(false);
+    }
+  };
+
 
   const generateAll = async () => {
     const list = wsRef.current.sections;
@@ -284,6 +318,20 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             {ws.manual ? "Editado manualmente" : "Montado a partir das sessões"} ·{" "}
             {article.trim() ? article.trim().split(/\s+/).length : 0} palavras
           </span>
+          <Button
+            type="button"
+            variant="secondary"
+            className="gap-2"
+            disabled={!article.trim() || reviewing}
+            onClick={() => void reviewArticle()}
+          >
+            {reviewing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Sparkles className="size-4" />
+            )}
+            Revisar coesão com IA
+          </Button>
           <Button
             type="button"
             variant="secondary"
