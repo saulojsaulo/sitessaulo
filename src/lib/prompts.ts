@@ -146,7 +146,11 @@ export function buildCohesionPrompt(title: string, article: string): string {
 7. Confirmar que a introdução (antes da primeira seção numerada) não tem "###" solto sem um "##" pai correspondente.
 8. Revisar a consistência interna dos exemplos ilustrativos (nomes, gênero gramatical, valores que devem bater com contas simples, datas coerentes entre si). Corrija qualquer detalhe que não faça sentido lógico dentro do próprio exemplo.
 9. Sinalizar qualquer afirmação sobre regras, produtos, taxas, prazos ou serviços (especialmente financeiros, tributários, jurídicos ou regulados) que dependa de estar atualizada — especialmente se o artigo tratar algo como "atual" ou "padrão" sem qualificar. Adicione um comentário <!-- VERIFICAR: [trecho] --> logo antes dessas frases para revisão humana antes de publicar, sem alterar o texto visível.
-10. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
+10. Procurar contradições factuais entre seções diferentes (ex: uma seção diz que algo acontece "em tempo real" e outra menciona um prazo de dias para o mesmo evento). Se encontrar, ajuste a seção mais tardia para ficar consistente com a primeira, ou marque com <!-- VERIFICAR: contradição sobre [assunto] entre a seção X e a seção Y -->.
+11. Verificar especificamente se cada pergunta do FAQ é uma frase completa e gramaticalmente correta — atenção redobrada em perguntas que deveriam começar com "É" (ex: "É possível registrar...", "É necessário...") e que às vezes saem sem o verbo ("possível registrar..."). Corrija todas.
+12. Corrigir confusões ortográficas entre palavras parecidas — em especial "seção" (parte do texto) usado como "sessão" (reunião). Frases como "Nesta sessão, respondemos..." devem virar "Nesta seção...", e ainda melhor, ser reescritas sem abertura genérica.
+13. Localizar convenções, padrões de nomenclatura ou regras de negócio afirmadas como oficiais (ex: "a razão social do MEI segue o padrão NOME – MEI"). Se não forem verificáveis, reescreva de forma cautelosa ou marque com <!-- VERIFICAR: [trecho] -->.
+14. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
 
 REQUISITO DE TAMANHO (obrigatório): o artigo revisado deve ter NO MÍNIMO ${MIN_ARTICLE_WORDS} palavras. O texto atual tem aproximadamente ${countWords(article)} palavras. Se estiver abaixo disso, aprofunde o conteúdo das seções existentes com explicações mais detalhadas, passos concretos e exemplos hipotéticos relevantes ao tema — sem criar novas seções, sem repetir ideias e sem enrolação.
 
