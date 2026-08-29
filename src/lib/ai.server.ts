@@ -253,7 +253,7 @@ export async function generateWithGemini(
 ): Promise<string> {
   const groqKey = process.env["GROQ_API_KEY"];
   if (groqKey) {
-    const model = process.env["GROQ_MODEL"] || "openai/gpt-oss-120b";
+    const model = process.env["GROQ_MODEL"] || "groq/compound";
 
     // Modelos agentic da Groq (compound) têm busca web real: ativamos as regras
     // que exigem fonte verificável em vez de dados inventados.
