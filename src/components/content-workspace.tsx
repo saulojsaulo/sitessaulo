@@ -52,9 +52,14 @@ interface Props {
   cover?: string | undefined;
   tags?: string[] | undefined;
   onStatusChange?: (status: "artigo_completo" | "agendado" | "publicado") => void;
+  /** Nicho do blog, usado para dar contexto aos prompts de IA. */
+  niche?: string | undefined;
+  /** Ferramenta própria do site que pode ser citada uma vez no artigo. */
+  tool?: string | undefined;
   /** Expõe ações do workspace para a tela de edição. */
   onReady?: (api: WorkspaceApi) => void;
 }
+
 
 
 
