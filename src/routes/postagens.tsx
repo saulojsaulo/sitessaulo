@@ -45,6 +45,7 @@ import { BulkUploadPosts } from "@/components/bulk-upload";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
 import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
+import { buildStructurePrompt } from "@/lib/prompts";
 import {
   daysAgo,
   iso,
