@@ -257,11 +257,138 @@ async function generateWithGroq(
   return out;
 }
 
+/** Chamada ao OpenRouter (API compatível com OpenAI, streaming SSE). */
+async function generateWithOpenRouter(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  system: string | undefined,
+  meta: AiMeta,
+): Promise<string> {
+  const started = Date.now();
+  const base = {
+    kind: meta.kind ?? "outro",
+    post_id: meta.postId ?? null,
+    post_title: meta.postTitle ?? null,
+    model: `openrouter/${model}`,
+  };
+
+  const fail = async (message: string): Promise<never> => {
+    await logAiUsage({
+      ...base,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      estimated: true,
+      duration_ms: Date.now() - started,
+      ok: false,
+      error: message.slice(0, 500),
+    });
+    throw new Error(message);
+  };
+
+  let res: Response;
+  try {
+    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "X-Title": "Controle de Postagens",
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        stream_options: { include_usage: true },
+        messages: [
+          ...(system ? [{ role: "system", content: system }] : []),
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+  } catch (e) {
+    return fail(`Falha de rede ao chamar o OpenRouter: ${e instanceof Error ? e.message : "erro"}`);
+  }
+
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    if (res.status === 401) return fail("Chave OPENROUTER_API_KEY inválida.");
+    if (res.status === 402) return fail("Créditos do OpenRouter esgotados.");
+    if (res.status === 429) return fail("Limite de requisições do OpenRouter atingido.");
+    if (res.status === 404)
+      return fail(`Modelo OpenRouter inválido: ${model}. Ajuste a secret OPENROUTER_MODEL.`);
+    return fail(`OpenRouter [${res.status}]: ${body.slice(0, 300)}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null =
+    null;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (t.startsWith(":")) continue; // comentários de keep-alive do OpenRouter
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (payload === "" || payload === "[DONE]") continue;
+      try {
+        const json = JSON.parse(payload) as {
+          choices?: { delta?: { content?: string } }[];
+          error?: { message?: string; code?: string | number } | null;
+          usage?: {
+            prompt_tokens?: number;
+            completion_tokens?: number;
+            total_tokens?: number;
+          } | null;
+        };
+        if (json.error) return fail(`OpenRouter: ${json.error.message ?? "erro desconhecido"}`);
+        const delta = json.choices?.[0]?.delta?.content;
+        if (delta) text += delta;
+        if (json.usage) usage = json.usage;
+      } catch {
+        // fragmento incompleto
+      }
+    }
+  }
+
+  const out = text.trim();
+  if (!out) return fail("O OpenRouter encerrou a resposta sem conteúdo. Tente novamente.");
+  const promptTokens = usage?.prompt_tokens ?? estimateTokens((system ?? "") + prompt);
+  const completionTokens = usage?.completion_tokens ?? estimateTokens(out);
+
+  await logAiUsage({
+    ...base,
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: usage?.total_tokens ?? promptTokens + completionTokens,
+    estimated: usage == null,
+    duration_ms: Date.now() - started,
+    ok: true,
+    error: null,
+  });
+
+  return out;
+}
+
 export async function generateWithGemini(
   prompt: string,
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
+  const orKey = process.env["OPENROUTER_API_KEY"];
+  if (orKey) {
+    const model = process.env["OPENROUTER_MODEL"] || "inclusionai/ling-3.0-flash-fin:free";
+    return generateWithOpenRouter(orKey, model, prompt, system, meta);
+  }
+
   const groqKey = process.env["GROQ_API_KEY"];
   if (groqKey) {
     const model = process.env["GROQ_MODEL"] || "groq/compound";
