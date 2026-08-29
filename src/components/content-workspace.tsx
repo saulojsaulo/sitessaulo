@@ -164,11 +164,19 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   };
 
   const generateSection = async (id: string) => {
-    const section = wsRef.current.sections.find((s) => s.id === id);
+    const list = wsRef.current.sections;
+    const index = list.findIndex((s) => s.id === id);
+    const section = list[index];
     if (!section?.prompt.trim()) return;
-    const outline = summarizeOutline(wsRef.current.sections.map((s) => s.prompt));
+    const outline = summarizeOutline(list.map((s) => s.prompt));
+    // Texto completo das seções anteriores: evita contradições factuais entre seções.
+    const previousText = list
+      .slice(0, Math.max(index, 0))
+      .map((s) => s.response.trim())
+      .filter((t) => t !== "")
+      .join("\n\n");
     const text = await askGemini(
-      buildSectionPrompt(title, outline, section.prompt, { niche, tool }),
+      buildSectionPrompt(title, outline, section.prompt, { niche, tool }, previousText),
       {
         kind: "sessao",
         postId,
