@@ -50,12 +50,6 @@ interface Props {
   onReady?: (api: WorkspaceApi) => void;
 }
 
-import {
-  SYSTEM_PROMPT,
-  buildCohesionPrompt,
-  buildSectionPrompt,
-  summarizeOutline,
-} from "@/lib/prompts";
 
 
 export async function askGemini(
