@@ -188,6 +188,9 @@ async function generateWithGroq(
   const decoder = new TextDecoder();
   let buffer = "";
   let text = "";
+  // Modelos agentic (compound) às vezes devolvem o texto final no campo
+  // `reasoning` e deixam `content` vazio — guardamos como reserva.
+  let reasoning = "";
   let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null =
     null;
 
@@ -204,7 +207,7 @@ async function generateWithGroq(
       if (payload === "" || payload === "[DONE]") continue;
       try {
         const json = JSON.parse(payload) as {
-          choices?: { delta?: { content?: string } }[];
+          choices?: { delta?: { content?: string; reasoning?: string } }[];
           usage?: {
             prompt_tokens?: number;
             completion_tokens?: number;
@@ -220,6 +223,8 @@ async function generateWithGroq(
         };
         const delta = json.choices?.[0]?.delta?.content;
         if (delta) text += delta;
+        const think = json.choices?.[0]?.delta?.reasoning;
+        if (think) reasoning += think;
         if (json.usage) usage = json.usage;
         else if (json.x_groq?.usage) usage = json.x_groq.usage;
       } catch {
@@ -228,7 +233,17 @@ async function generateWithGroq(
     }
   }
 
-  const out = text.trim();
+  const cleanThink = (s: string) =>
+    s
+      .replace(/<\/?think>/gi, "")
+      .replace(/<\/?reasoning>/gi, "")
+      .trim();
+
+  let out = text.trim();
+  if (out === "") out = cleanThink(reasoning);
+  if (out === "")
+    return fail("O modelo não retornou conteúdo. Tente gerar novamente.");
+
   const promptTokens = usage?.prompt_tokens ?? estimateTokens((system ?? "") + prompt);
   const completionTokens = usage?.completion_tokens ?? estimateTokens(out);
 
