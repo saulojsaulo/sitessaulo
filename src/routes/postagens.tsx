@@ -343,7 +343,7 @@ function PostsPage() {
       toast.error("Preencha o título antes de gerar o prompt");
       return;
     }
-    const text = buildStructurePrompt(title);
+    const text = buildStructurePrompt(title, siteCtx(draft.blogId));
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Prompt copiado!");
@@ -366,7 +366,7 @@ function PostsPage() {
     }
     setAiLoading(true);
     try {
-      const text = await askGemini(buildStructurePrompt(title), {
+      const text = await askGemini(buildStructurePrompt(title, siteCtx(draft.blogId)), {
         kind: "estrutura",
         postId: editing?.id ?? null,
         postTitle: title,
