@@ -82,13 +82,25 @@ Agora gere o texto apenas da seção abaixo, seguindo à risca o escopo do tema 
 
 ${sectionPrompt}
 
-Regras de formatação: logo após o título (##), escreva um parágrafo introdutório curto (2 a 4 frases) apresentando o assunto do título antes de iniciar qualquer subtítulo (###). Só depois desenvolva os subtítulos.
+Regras de formatação: logo após o título (##), escreva um parágrafo introdutório curto (2 a 4 frases) apresentando o assunto do título antes de iniciar qualquer subtítulo (###). Só depois desenvolva os subtítulos. Nunca use "###" sem que o "##" da seção venha antes.
 
 Lembre-se:
 - Fique 100% dentro do tema "${title}". Não mencione ferramentas, exemplos ou dicas de assuntos não relacionados (ex: marketing digital genérico, automação de vendas), a menos que a seção seja literalmente sobre isso.
 - Não repita ideias já cobertas em outras seções do resumo acima.${toolRule}
+- Não invente estatísticas, estudos, pesquisas ou "casos reais" de empresas. Use apenas exemplos claramente hipotéticos.
+- O título depois de "##" deve ser editorial e natural; nunca ecoe a instrução recebida (ex: "Conclusão curta sobre...").
 - Não adicione dicas de SEO, comentários sobre o processo ou qualquer texto fora do conteúdo do artigo.`;
 }
+
+/** Número mínimo de palavras exigido no artigo após a revisão de coesão. */
+export const MIN_ARTICLE_WORDS = 2000;
+
+export const countWords = (text: string) =>
+  text
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[#*`>|_-]+/g, " ")
+    .split(/\s+/)
+    .filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 
 export function buildCohesionPrompt(title: string, article: string): string {
   return `Abaixo está um artigo completo sobre "${title}", montado a partir de seções geradas separadamente. Revise-o para:
@@ -96,13 +108,32 @@ export function buildCohesionPrompt(title: string, article: string): string {
 1. Remover qualquer frase repetida de abertura de seção (ex: variações de "Nesta seção, vamos...").
 2. Identificar e sinalizar qualquer trecho fora do escopo do tema "${title}" (se encontrar, substitua por conteúdo relevante ao tema, mantendo o tamanho da seção).
 3. Garantir transições naturais entre seções, sem repetir a mesma estrutura de frase mais de duas vezes no artigo inteiro.
-4. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
+4. Corrigir qualquer erro de gramática, concordância, ortografia ou frase incompleta/quebrada (ex: uma pergunta ou frase que começa faltando um verbo ou sujeito).
+5. Localizar qualquer estatística, percentual, "estudo", "pesquisa" ou "caso real" com empresa/instituição citada como fonte. Se a fonte não for verificável ou parecer inventada, reescreva o trecho como exemplo claramente hipotético (ex: "imagine um cenário em que...") ao invés de apresentá-lo como fato ocorrido.
+6. Verificar se algum título de seção descreve a própria instrução que o gerou (ex: "Conclusão curta sobre...", "Resumo dos pontos discutidos"). Se encontrar, reescreva como um título editorial natural.
+7. Confirmar que a introdução (antes da primeira seção numerada) não tem "###" solto sem um "##" pai correspondente.
+8. Manter toda a formatação Markdown original (## e ###) e não adicionar nem remover seções.
+
+REQUISITO DE TAMANHO (obrigatório): o artigo revisado deve ter NO MÍNIMO ${MIN_ARTICLE_WORDS} palavras. O texto atual tem aproximadamente ${countWords(article)} palavras. Se estiver abaixo disso, aprofunde o conteúdo das seções existentes com explicações mais detalhadas, passos concretos e exemplos hipotéticos relevantes ao tema — sem criar novas seções, sem repetir ideias e sem enrolação.
 
 Artigo completo:
 ${article}
 
 Responda apenas com o artigo revisado em Markdown.`;
 }
+
+/** Segunda passada: pede expansão quando a revisão voltou curta. */
+export function buildExpansionPrompt(title: string, article: string): string {
+  return `O artigo abaixo, sobre "${title}", tem apenas ${countWords(article)} palavras e precisa de no mínimo ${MIN_ARTICLE_WORDS}.
+
+Reescreva-o mais completo, aprofundando cada seção existente com detalhamento prático, passos, nuances e exemplos hipotéticos relevantes ao tema. Não crie nem remova seções, não repita ideias, não adicione enrolação nem comentários sobre o processo, e mantenha toda a formatação Markdown (## e ###) e a hierarquia de headings.
+
+Artigo:
+${article}
+
+Responda apenas com o artigo final em Markdown, com ${MIN_ARTICLE_WORDS} palavras ou mais.`;
+}
+
 
 /** Resumo de uma linha por seção, a partir dos títulos/subtítulos do outline. */
 export function summarizeOutline(prompts: string[]): string {
