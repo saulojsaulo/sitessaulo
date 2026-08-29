@@ -97,7 +97,6 @@ interface Draft {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-import { buildStructurePrompt } from "@/lib/prompts";
 
 
 const buildCoverImagePrompt = (title: string, category: string) =>
