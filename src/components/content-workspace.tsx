@@ -90,11 +90,13 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, onStatusChange, onReady }: Props) {
+export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, niche, tool, onStatusChange, onReady }: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+
   const loadedFor = useRef(resetKey);
   const wsRef = useRef(ws);
   wsRef.current = ws;
