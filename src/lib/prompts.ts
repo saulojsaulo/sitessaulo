@@ -88,17 +88,22 @@ export function buildSectionPrompt(
   outlineSummary: string,
   sectionPrompt: string,
   ctx: SiteContext = {},
+  previousText = "",
 ): string {
   const tool = ctx.tool?.trim();
   const toolRule = tool
     ? `\n- Se fizer sentido natural para esta seção específica, você pode mencionar a ferramenta ${tool} do site como exemplo prático — mas apenas se for genuinamente relevante ao subtítulo, no máximo uma vez no artigo inteiro.`
     : "";
 
+  const previousBlock = previousText.trim()
+    ? `\nTexto já gerado das seções anteriores (leia com atenção: não contradiga nenhum fato, prazo, valor ou processo já descrito, e não repita o que já foi dito):\n${previousText.trim()}\n`
+    : "";
+
   return `Você está escrevendo uma seção de um artigo maior sobre "${title}".
 
 Resumo do artigo completo (para você manter coerência de tema e não repetir o que já foi dito em outras seções):
 ${outlineSummary || "(resumo indisponível — mantenha-se estritamente no tema do título)"}
-
+${previousBlock}
 Agora gere o texto apenas da seção abaixo, seguindo à risca o escopo do tema do artigo. Adicione "##" antes do título da seção e "###" antes de cada subtítulo:
 
 ${sectionPrompt}
