@@ -255,6 +255,16 @@ export async function generateWithGemini(
   if (groqKey) {
     const model = process.env["GROQ_MODEL"] || "openai/gpt-oss-120b";
 
+    // Modelos agentic da Groq (compound) têm busca web real: ativamos as regras
+    // que exigem fonte verificável em vez de dados inventados.
+    if (model.includes("compound")) {
+      const { WEB_SEARCH_SYSTEM_ADDENDUM, WEB_SEARCH_SECTION_ADDENDUM } = await import("./prompts");
+      const sys = (system ?? "") + WEB_SEARCH_SYSTEM_ADDENDUM;
+      const userPrompt =
+        meta.kind === "sessao" ? prompt + WEB_SEARCH_SECTION_ADDENDUM : prompt;
+      return generateWithGroq(groqKey, model, userPrompt, sys, meta);
+    }
+
     return generateWithGroq(groqKey, model, prompt, system, meta);
   }
 
