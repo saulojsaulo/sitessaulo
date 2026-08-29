@@ -20,6 +20,22 @@ Regras de estilo OBRIGATÓRIAS:
 - Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.`;
 
 
+/** Regras extras aplicadas quando o modelo tem busca web real (ex.: groq/compound). */
+export const WEB_SEARCH_SYSTEM_ADDENDUM = `
+
+Você tem acesso a busca na web. Use-a sempre que for incluir uma estatística, percentual, resultado de pesquisa, dado técnico específico (ex: comportamento de uma função, atalho de um software, limite de uma ferramenta) ou qualquer afirmação que dependa de uma fonte externa para ser verdadeira.
+
+Regras para uso da busca:
+- Se encontrar um dado real e relevante, cite a informação de forma natural no texto, em português, sem colar trechos longos da fonte (parafraseie).
+- Se a busca não retornar nada relevante ou confiável, NÃO invente um número, estudo ou fonte no lugar. Nesse caso, escreva a ideia de forma qualitativa (sem número específico) ou como exemplo claramente hipotético.
+- Nunca atribua um dado a uma empresa, escritório ou instituição fictícia. Se não pesquisou uma fonte real para aquele dado específico, não cite fonte nenhuma.
+- Responda apenas com o conteúdo final pedido, sem descrever buscas feitas, links de referência em bloco ou notas de processo.`;
+
+/** Regra extra no prompt de seção quando há busca web disponível. */
+export const WEB_SEARCH_SECTION_ADDENDUM = `
+
+Antes de afirmar qualquer número, estatística ou resultado de pesquisa nesta seção, pesquise na web para confirmar. Se não encontrar uma fonte real e relevante, não inclua a afirmação como fato — reformule como exemplo hipotético ou remova o número.`;
+
 export interface SiteContext {
   /** Nicho/assunto do blog (ex.: nome ou descrição do blog). */
   niche?: string | undefined;
