@@ -50,8 +50,13 @@ interface Props {
   onReady?: (api: WorkspaceApi) => void;
 }
 
-const SYSTEM_PROMPT =
-  "Você é um redator brasileiro especialista em SEO e conteúdo para blogs. Responda sempre em português do Brasil, sem comentários extras, apenas o conteúdo pedido.";
+import {
+  SYSTEM_PROMPT,
+  buildCohesionPrompt,
+  buildSectionPrompt,
+  summarizeOutline,
+} from "@/lib/prompts";
+
 
 export async function askGemini(
   prompt: string,
