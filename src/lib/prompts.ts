@@ -48,7 +48,7 @@ O artigo será publicado em um blog especializado em ${niche || "no tema acima"}
 Regras da estrutura:
 - Entre 5 e 8 seções principais (nem toda seção precisa ter subtítulos).
 - Todas as seções devem tratar exclusivamente do tema "${title}" — não inclua seções genéricas de fechamento de blog (ex: "dicas de marketing digital", "ferramentas avançadas de automação") a menos que sejam literalmente sobre o tema.
-- A primeira seção deve ser uma introdução direta ao problema que o leitor tem (evite introduções genéricas tipo "Neste artigo vamos...").
+- A primeira seção deve ser uma introdução direta ao problema que o leitor tem (evite introduções genéricas tipo "Neste artigo vamos...") e também deve ter um título numerado "1" (H2) — nunca subtítulos "###" soltos sem um "##" pai.
 - Inclua, entre as últimas seções, uma seção de "Perguntas frequentes" com 3 a 5 subtítulos, cada um sendo uma pergunta real que alguém pesquisaria no Google sobre o tema.
 - A última seção deve ser uma conclusão curta e específica ao tema — sem listas genéricas de "próximos passos" desconectados do assunto.
 - Numere cada título como "1", "2", "3"... e cada subtítulo como "1.1", "1.2" etc.
