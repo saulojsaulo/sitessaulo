@@ -30,11 +30,15 @@ import {
   type Workspace,
 } from "@/lib/content-workspace";
 import {
+  MIN_ARTICLE_WORDS,
   SYSTEM_PROMPT,
   buildCohesionPrompt,
+  buildExpansionPrompt,
   buildSectionPrompt,
+  countWords,
   summarizeOutline,
 } from "@/lib/prompts";
+
 
 export interface WorkspaceApi {
   /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
