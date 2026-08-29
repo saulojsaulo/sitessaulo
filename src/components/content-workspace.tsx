@@ -155,18 +155,40 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const generateSection = async (id: string) => {
     const section = wsRef.current.sections.find((s) => s.id === id);
     if (!section?.prompt.trim()) return;
-    const guidance =
-      '\n\nRegras de formatação: logo após o título (##), escreva um parágrafo introdutório curto (2 a 4 frases) apresentando o assunto do título antes de iniciar qualquer subtítulo (###). Só depois desenvolva os subtítulos. Não adicione dicas de SEO nem comentários ao publisher.';
-    const text = await askGemini(section.prompt + guidance, {
-      kind: "sessao",
-      postId,
-      postTitle: title,
-    });
-
+    const outline = summarizeOutline(wsRef.current.sections.map((s) => s.prompt));
+    const text = await askGemini(
+      buildSectionPrompt(title, outline, section.prompt, { niche, tool }),
+      {
+        kind: "sessao",
+        postId,
+        postTitle: title,
+      },
+    );
 
     if (!text) throw new Error("A IA não retornou conteúdo");
     updateSection(id, { response: text });
   };
+
+  const reviewArticle = async () => {
+    const current = cleanHeadings(wsRef.current.manual ? wsRef.current.article : buildArticle(wsRef.current.sections));
+    if (!current.trim()) return;
+    setReviewing(true);
+    try {
+      const text = await askGemini(buildCohesionPrompt(title, current), {
+        kind: "revisao",
+        postId,
+        postTitle: title,
+      });
+      if (!text) throw new Error("A IA não retornou conteúdo");
+      commit({ ...wsRef.current, article: text, manual: true });
+      toast.success("Artigo revisado pela IA");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao revisar o artigo");
+    } finally {
+      setReviewing(false);
+    }
+  };
+
 
   const generateAll = async () => {
     const list = wsRef.current.sections;
