@@ -185,14 +185,30 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
     if (!current.trim()) return;
     setReviewing(true);
     try {
-      const text = await askGemini(buildCohesionPrompt(title, current), {
+      let text = await askGemini(buildCohesionPrompt(title, current), {
         kind: "revisao",
         postId,
         postTitle: title,
       });
       if (!text) throw new Error("A IA não retornou conteúdo");
+
+      // Garante o mínimo de palavras com até 2 passadas de expansão.
+      for (let i = 0; i < 2 && countWords(text) < MIN_ARTICLE_WORDS; i += 1) {
+        const expanded = await askGemini(buildExpansionPrompt(title, text), {
+          kind: "revisao",
+          postId,
+          postTitle: title,
+        });
+        if (!expanded || countWords(expanded) <= countWords(text)) break;
+        text = expanded;
+      }
+
+      const words = countWords(text);
       commit({ ...wsRef.current, article: text, manual: true });
-      toast.success("Artigo revisado pela IA");
+      if (words < MIN_ARTICLE_WORDS)
+        toast.warning(`Artigo revisado com ${words} palavras (mínimo ${MIN_ARTICLE_WORDS}).`);
+      else toast.success(`Artigo revisado pela IA — ${words} palavras`);
+
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao revisar o artigo");
     } finally {
