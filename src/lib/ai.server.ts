@@ -433,24 +433,32 @@ export async function generateWithGemini(
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
-  const orKeys = [
-    process.env["OPENROUTER_API_KEY"],
-    process.env["OPENROUTER_API_KEY_2"],
-    process.env["OPENROUTER_API_KEY_3"],
-  ].filter((k): k is string => !!k);
+  const orKeys = (
+    [
+      ["OPENROUTER_API_KEY", process.env["OPENROUTER_API_KEY"]],
+      ["OPENROUTER_API_KEY_2", process.env["OPENROUTER_API_KEY_2"]],
+      ["OPENROUTER_API_KEY_3", process.env["OPENROUTER_API_KEY_3"]],
+    ] as const
+  )
+    .map(([label, key]) => ({ label, key: key?.trim() }))
+    .filter((k): k is { label: string; key: string } => !!k.key);
   const groqKey = process.env["GROQ_API_KEY"];
 
   if (orKeys.length) {
     const model = process.env["OPENROUTER_MODEL"] || "inclusionai/ling-3.0-flash-fin:free";
     for (let i = 0; i < orKeys.length; i++) {
+      const entry = orKeys[i]!;
       try {
-        return await generateWithOpenRouter(orKeys[i]!, model, prompt, system, meta);
+        return await generateWithOpenRouter(entry.key, model, prompt, system, {
+          ...meta,
+          keyLabel: entry.label,
+        });
       } catch (e) {
         if (!isQuotaError(e)) throw e;
         const next = orKeys[i + 1];
         if (next) {
           console.warn(
-            `[ai] Chave OpenRouter #${i + 1} sem cota, tentando chave #${i + 2}:`,
+            `[ai] ${entry.label} indisponível, tentando ${next.label}:`,
             (e as Error).message,
           );
           continue;
