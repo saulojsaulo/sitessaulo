@@ -433,15 +433,11 @@ export async function generateWithGemini(
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
-  const orKeys = (
-    [
-      ["OPENROUTER_API_KEY", process.env["OPENROUTER_API_KEY"]],
-      ["OPENROUTER_API_KEY_2", process.env["OPENROUTER_API_KEY_2"]],
-      ["OPENROUTER_API_KEY_3", process.env["OPENROUTER_API_KEY_3"]],
-    ] as const
-  )
-    .map(([label, key]) => ({ label, key: key?.trim() }))
-    .filter((k): k is { label: string; key: string } => !!k.key);
+  const orKeys: { label: string; key: string }[] = [
+    { label: "OPENROUTER_API_KEY", key: process.env["OPENROUTER_API_KEY"]?.trim() ?? "" },
+    { label: "OPENROUTER_API_KEY_2", key: process.env["OPENROUTER_API_KEY_2"]?.trim() ?? "" },
+    { label: "OPENROUTER_API_KEY_3", key: process.env["OPENROUTER_API_KEY_3"]?.trim() ?? "" },
+  ].filter((k) => k.key !== "");
   const groqKey = process.env["GROQ_API_KEY"];
 
   if (orKeys.length) {
