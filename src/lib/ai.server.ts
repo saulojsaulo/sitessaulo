@@ -9,6 +9,8 @@ export interface AiMeta {
   kind?: string;
   postId?: string | null;
   postTitle?: string | null;
+  /** Nome da secret usada na chamada (aparece em mensagens de erro). */
+  keyLabel?: string;
 }
 
 /** Chamada direta à API do Google (chave própria do usuário). */
