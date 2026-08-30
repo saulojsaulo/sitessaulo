@@ -224,6 +224,13 @@ export function buildReviewPrompt(article: string): string {
    - Verifique se a palavra-chave principal aparece no primeiro parágrafo e em pelo menos um <h2>.
    - Sugira, na seção META, um meta title (até 60 caracteres) e uma meta description (até 155 caracteres) otimizados.
 
+7. **Aderência ao tema**
+   - Verifique se TODAS as seções, especialmente a introdução e a conclusão, tratam exclusivamente do tema do título. Remova ou reescreva qualquer parágrafo que mencione ferramentas, conceitos ou exemplos sem relação direta com o assunto principal.
+
+8. **Conferência final**
+   - Antes de entregar, releia o artigo do início ao fim e confirme que o título, a introdução e a conclusão descrevem o mesmo assunto.
+
+
 ## FORMATO DA RESPOSTA (OBRIGATÓRIO)
 
 Responda APENAS com o seguinte, sem nenhum comentário, explicação ou texto fora dessas seções:
