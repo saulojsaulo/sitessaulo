@@ -242,9 +242,8 @@ export async function runScheduler(dateISO = todayInSP()): Promise<RunResult> {
       });
     }
 
-    const next = (await listRuns(dateISO)).find(
-      (r) => r.state === "pendente" || (r.state === "falhou" && !r.article_at && false),
-    );
+    const next = (await listRuns(dateISO)).find((r) => r.state === "pendente");
+
     if (!next) return { ok: true, message: "Fila do dia concluída" };
 
     await patchRun(next.id, { state: "executando", started_at: nowISO(), error: null });
