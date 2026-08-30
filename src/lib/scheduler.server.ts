@@ -22,7 +22,7 @@ import type { Blog, Category, Post } from "./types";
 import type { BlogRow, CategoryRow, PostRow } from "./supabase";
 
 const LOCK_ID = "runner";
-const LOCK_MINUTES = 25;
+const LOCK_MINUTES = 3;
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const nowISO = () => new Date().toISOString();
@@ -188,10 +188,6 @@ async function stepOnce(postId: string, runId?: string): Promise<StepResult> {
     if (runId) await patchRun(runId, { structure_at: nowISO() });
     return "progress";
   }
-  if (runId && !post.content.includes("")) {
-    // no-op: mantém compatibilidade de tipos
-  }
-
   // Garante as sessões derivadas da estrutura
   let sections = ws.sections;
   if (sections.length === 0 || sections.some((s) => !s.prompt.trim())) {
