@@ -7,6 +7,7 @@ import { CalendarDays, Loader2, PlayCircle, RotateCcw, Sparkles } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { EmptyState, PageHeader } from "@/components/ui-bits";
+import { SchedulerLog } from "@/components/scheduler-log";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import { runPostPipeline, runSchedulerNow } from "@/lib/scheduler.functions";
