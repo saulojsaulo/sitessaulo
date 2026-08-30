@@ -84,6 +84,22 @@ function SchedulerPage() {
   const runPost = useServerFn(runPostPipeline);
   const [busy, setBusy] = useState<string | null>(null);
 
+  /** Só postagens com imagem de capa entram na fila. */
+  const coversQuery = useQuery({
+    queryKey: ["posts-with-cover"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id")
+        .not("cover", "is", null)
+        .neq("cover", "");
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as { id: string }[]).map((r) => r.id);
+    },
+    staleTime: 60_000,
+  });
+  const withCover = useMemo(() => new Set(coversQuery.data ?? []), [coversQuery.data]);
+
   const items = useMemo<Item[]>(() => {
     const runs = runsQuery.data ?? [];
     if (runs.length > 0)
@@ -96,7 +112,8 @@ function SchedulerPage() {
         position: r.position,
         run: r,
       }));
-    return planForDate({ blogs, categories, posts, dateISO, todayISO }).map((i) => ({
+    if (!coversQuery.data) return [];
+    return planForDate({ blogs, categories, posts, dateISO, todayISO, withCover }).map((i) => ({
       key: `${i.blogId}-${i.postId}`,
       runId: null,
       postId: i.postId,
@@ -105,7 +122,7 @@ function SchedulerPage() {
       position: i.position,
       run: null,
     }));
-  }, [runsQuery.data, blogs, categories, posts, dateISO, todayISO]);
+  }, [runsQuery.data, coversQuery.data, withCover, blogs, categories, posts, dateISO, todayISO]);
 
   const openPost = (postId: string) => {
     void navigate({ to: "/postagens", search: { post: postId } });
