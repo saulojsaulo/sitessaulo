@@ -137,7 +137,7 @@ function SchedulerPage() {
     }
   };
 
-  const weekend = !isBusinessDayISO(dateISO);
+  const weekend = false;
   const hour = nowHourSP();
 
   return (
