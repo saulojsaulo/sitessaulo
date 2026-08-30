@@ -424,19 +424,34 @@ export async function generateWithGemini(
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
-  const orKey = process.env["OPENROUTER_API_KEY"];
+  const orKeys = [
+    process.env["OPENROUTER_API_KEY"],
+    process.env["OPENROUTER_API_KEY_2"],
+  ].filter((k): k is string => !!k);
   const groqKey = process.env["GROQ_API_KEY"];
 
-  if (orKey) {
+  if (orKeys.length) {
     const model = process.env["OPENROUTER_MODEL"] || "inclusionai/ling-3.0-flash-fin:free";
-    try {
-      return await generateWithOpenRouter(orKey, model, prompt, system, meta);
-    } catch (e) {
-      // Limite diário/cota do OpenRouter: cai automaticamente para a Groq.
-      if (!groqKey || !isQuotaError(e)) throw e;
-      console.warn("[ai] OpenRouter sem cota, alternando para Groq:", (e as Error).message);
+    for (let i = 0; i < orKeys.length; i++) {
+      try {
+        return await generateWithOpenRouter(orKeys[i]!, model, prompt, system, meta);
+      } catch (e) {
+        if (!isQuotaError(e)) throw e;
+        const next = orKeys[i + 1];
+        if (next) {
+          console.warn(
+            `[ai] Chave OpenRouter #${i + 1} sem cota, tentando chave #${i + 2}:`,
+            (e as Error).message,
+          );
+          continue;
+        }
+        // Todas as chaves do OpenRouter sem cota: cai para a Groq.
+        if (!groqKey) throw e;
+        console.warn("[ai] OpenRouter sem cota, alternando para Groq:", (e as Error).message);
+      }
     }
   }
+
 
   if (groqKey) {
     try {
