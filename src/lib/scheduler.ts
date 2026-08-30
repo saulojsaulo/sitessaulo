@@ -55,10 +55,11 @@ export const parseISODate = (iso: string) => {
 export const toISODate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** Segunda a sexta. */
-export const isBusinessDay = (d: Date) => d.getDay() >= 1 && d.getDay() <= 5;
+/** Publicações são diárias: todos os dias da semana entram na fila. */
+export const isBusinessDay = (_d: Date) => true;
 
 export const isBusinessDayISO = (iso: string) => isBusinessDay(parseISODate(iso));
+
 
 /**
  * Posição do dia útil `dateISO` contando a partir de `fromISO` (índice 0 =
