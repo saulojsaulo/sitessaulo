@@ -28,13 +28,14 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 const nowISO = () => new Date().toISOString();
 
 async function loadData() {
-  const [blogsRes, catsRes, postsRes] = await Promise.all([
+  const [blogsRes, catsRes, postsRes, coverRes] = await Promise.all([
     supabase.from("blogs").select("*").order("name"),
     supabase.from("categories").select("*").order("name"),
     supabase
       .from("posts")
       .select("id,blog_id,category_id,title,content,tags,status,publish_date,created_at")
       .order("created_at"),
+    supabase.from("posts").select("id").not("cover", "is", null).neq("cover", ""),
   ]);
   const err = blogsRes.error ?? catsRes.error ?? postsRes.error;
   if (err) throw new Error(err.message);
