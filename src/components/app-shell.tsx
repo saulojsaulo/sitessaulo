@@ -7,6 +7,8 @@ import {
   BarChart3,
   Plug,
   CalendarClock,
+  CalendarCheck,
+
   Moon,
   Sun,
   ChevronsUpDown,
