@@ -167,18 +167,13 @@ function SchedulerPage() {
             className="rounded-md"
           />
           <p className="px-3 pb-2 text-xs text-muted-foreground">
-            Somente segunda a sexta recebem publicações.
+            Publicações diárias — todos os dias da semana.
           </p>
         </div>
 
         <div className="min-w-0">
-          {weekend ? (
-            <EmptyState
-              icon={<CalendarDays className="size-7" />}
-              title="Fim de semana"
-              description="As publicações acontecem de segunda a sexta-feira. Escolha um dia útil no calendário."
-            />
-          ) : items.length === 0 ? (
+          {items.length === 0 ? (
+
             <EmptyState
               icon={<CalendarDays className="size-7" />}
               title="Nenhum artigo para esta data"
