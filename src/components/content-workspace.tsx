@@ -105,6 +105,9 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const [tab, setTab] = useState("bruta");
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [editorial, setEditorial] = useState(false);
+  const [meta, setMeta] = useState("");
+
 
   const loadedFor = useRef(resetKey);
   const wsRef = useRef(ws);
