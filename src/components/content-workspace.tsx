@@ -39,7 +39,7 @@ import {
   buildReviewPrompt,
   buildSectionPrompt,
   countWords,
-  parseReviewOutput,
+  
   summarizeOutline,
 } from "@/lib/prompts";
 
@@ -233,7 +233,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
     }
   };
 
-  /** Revisão editorial final: devolve HTML pronto para o WordPress + META de SEO. */
+  /** Copia o prompt de revisão editorial para enviar a uma IA externa. */
   const reviewContent = async () => {
     const current = wsRef.current.manual
       ? wsRef.current.article
@@ -241,23 +241,8 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
     if (!current.trim()) return;
     setEditorial(true);
     try {
-      const raw = await askGemini(buildReviewPrompt(current), {
-        kind: "revisao",
-        postId,
-        postTitle: title,
-        system: REVIEW_SYSTEM_PROMPT,
-      });
-      if (!raw) throw new Error("A IA não retornou conteúdo");
-      const parsed = parseReviewOutput(raw);
-      if (!parsed.article) throw new Error("Não foi possível extrair o artigo revisado");
-      commit({ ...wsRef.current, article: parsed.article, manual: true });
-      setMeta(parsed.meta);
-      const words = countWords(parsed.article);
-      if (words < MIN_ARTICLE_WORDS)
-        toast.warning(`Conteúdo revisado com ${words} palavras (mínimo ${MIN_ARTICLE_WORDS}).`);
-      else toast.success(`Conteúdo revisado em HTML — ${words} palavras`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao revisar o conteúdo");
+      const prompt = `${REVIEW_SYSTEM_PROMPT}\n\n---\n\n${buildReviewPrompt(current)}`;
+      await copy(prompt, "Prompt de revisão copiado! Cole na IA externa.");
     } finally {
       setEditorial(false);
     }
