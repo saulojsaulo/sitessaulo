@@ -159,15 +159,17 @@ export function planForDate(input: {
   posts: Post[];
   dateISO: string;
   todayISO: string;
+  /** Só postagens com imagem de capa entram na fila. */
+  withCover?: Set<string>;
 }): PlanItem[] {
-  const { blogs, categories, posts, dateISO, todayISO } = input;
+  const { blogs, categories, posts, dateISO, todayISO, withCover } = input;
   const offset = businessDayIndex(todayISO, dateISO);
   if (offset === null) return [];
 
   const ordered = [...blogs].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const items: PlanItem[] = [];
   for (const blog of ordered) {
-    const queue = blogQueue(posts, categories, blog.id);
+    const queue = blogQueue(posts, categories, blog.id, withCover);
     const post = queue[offset];
     if (!post) continue;
     items.push({
