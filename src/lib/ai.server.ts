@@ -178,6 +178,8 @@ async function generateWithGroq(
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
     if (res.status === 401) return fail("Chave GROQ_API_KEY inválida.");
+    if (res.status === 413)
+      return fail("Groq: prompt muito grande para este modelo (limite de contexto).");
     if (res.status === 429) return fail("Limite de requisições da sua conta Groq atingido.");
     if (res.status === 404)
       return fail(`Modelo Groq inválido: ${model}. Ajuste a secret GROQ_MODEL.`);
@@ -315,6 +317,8 @@ async function generateWithOpenRouter(
     if (res.status === 401) return fail("Chave OPENROUTER_API_KEY inválida.");
     if (res.status === 402) return fail("Créditos do OpenRouter esgotados.");
     if (res.status === 429) return fail("Limite de requisições do OpenRouter atingido.");
+    if (res.status === 413)
+      return fail("OpenRouter: prompt muito grande para este modelo (limite de contexto).");
     if (res.status === 404)
       return fail(`Modelo OpenRouter inválido: ${model}. Ajuste a secret OPENROUTER_MODEL.`);
     return fail(`OpenRouter [${res.status}]: ${body.slice(0, 300)}`);
@@ -378,7 +382,7 @@ async function generateWithOpenRouter(
   return out;
 }
 
-/** Erros que indicam limite/cota esgotada e devem acionar o próximo provedor. */
+/** Erros que indicam limite/cota/tamanho e devem acionar o próximo provedor. */
 function isQuotaError(e: unknown): boolean {
   const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
   return (
@@ -387,9 +391,13 @@ function isQuotaError(e: unknown): boolean {
     m.includes("credito") ||
     m.includes("rate_limit") ||
     m.includes("rate limit") ||
-    m.includes("quota")
+    m.includes("quota") ||
+    m.includes("muito grande") ||
+    m.includes("too large") ||
+    m.includes("413")
   );
 }
+
 
 async function runGroq(
   groqKey: string,
