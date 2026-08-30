@@ -382,7 +382,7 @@ async function generateWithOpenRouter(
   return out;
 }
 
-/** Erros que indicam limite/cota esgotada e devem acionar o próximo provedor. */
+/** Erros que indicam limite/cota/tamanho e devem acionar o próximo provedor. */
 function isQuotaError(e: unknown): boolean {
   const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
   return (
@@ -391,9 +391,13 @@ function isQuotaError(e: unknown): boolean {
     m.includes("credito") ||
     m.includes("rate_limit") ||
     m.includes("rate limit") ||
-    m.includes("quota")
+    m.includes("quota") ||
+    m.includes("muito grande") ||
+    m.includes("too large") ||
+    m.includes("413")
   );
 }
+
 
 async function runGroq(
   groqKey: string,
