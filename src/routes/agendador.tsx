@@ -288,6 +288,8 @@ function SchedulerPage() {
           )}
         </div>
       </div>
+
+      <SchedulerLog todayISO={todayISO} />
     </>
   );
 }
