@@ -314,7 +314,10 @@ async function generateWithOpenRouter(
 
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
-    if (res.status === 401) return fail("Chave OPENROUTER_API_KEY inválida.");
+    if (res.status === 401)
+      return fail(
+        `Chave OpenRouter inválida ou revogada (${meta.keyLabel ?? "OPENROUTER_API_KEY"}). Detalhe: ${body.slice(0, 160)}`,
+      );
     if (res.status === 402) return fail("Créditos do OpenRouter esgotados.");
     if (res.status === 429) return fail("Limite de requisições do OpenRouter atingido.");
     if (res.status === 413)
