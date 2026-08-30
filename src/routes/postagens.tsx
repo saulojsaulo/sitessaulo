@@ -303,6 +303,20 @@ function PostsPage() {
     }
   };
 
+  /** Abre direto uma postagem vinda do Agendador (?post=id). */
+  const openedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = search.post;
+    if (!id || openedRef.current === id) return;
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    openedRef.current = id;
+    startEdit(post);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.post, posts]);
+
+
+
 
   const save = () => {
     if (!draft) return;
