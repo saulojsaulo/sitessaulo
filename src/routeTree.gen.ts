@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendadasRouteImport } from './routes/agendadas'
+import { Route as AgendadorRouteImport } from './routes/agendador'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AgendadasRoute = AgendadasRouteImport.update({
   id: '/agendadas',
   path: '/agendadas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendadorRoute = AgendadorRouteImport.update({
+  id: '/agendador',
+  path: '/agendador',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -62,6 +68,7 @@ const ApiPublicSchedulerRunRoute = ApiPublicSchedulerRunRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agendadas': typeof AgendadasRoute
+  '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agendadas': typeof AgendadasRoute
+  '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agendadas': typeof AgendadasRoute
+  '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agendadas'
+    | '/agendador'
     | '/analytics'
     | '/blogs'
     | '/categorias'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agendadas'
+    | '/agendador'
     | '/analytics'
     | '/blogs'
     | '/categorias'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agendadas'
+    | '/agendador'
     | '/analytics'
     | '/blogs'
     | '/categorias'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendadasRoute: typeof AgendadasRoute
+  AgendadorRoute: typeof AgendadorRoute
   AnalyticsRoute: typeof AnalyticsRoute
   BlogsRoute: typeof BlogsRoute
   CategoriasRoute: typeof CategoriasRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/agendadas'
       fullPath: '/agendadas'
       preLoaderRoute: typeof AgendadasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agendador': {
+      id: '/agendador'
+      path: '/agendador'
+      fullPath: '/agendador'
+      preLoaderRoute: typeof AgendadorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendadasRoute: AgendadasRoute,
+  AgendadorRoute: AgendadorRoute,
   AnalyticsRoute: AnalyticsRoute,
   BlogsRoute: BlogsRoute,
   CategoriasRoute: CategoriasRoute,
