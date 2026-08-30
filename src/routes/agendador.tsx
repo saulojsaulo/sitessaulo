@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarDays, Loader2, PlayCircle, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { EmptyState, PageHeader } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { runPostPipeline, runSchedulerNow } from "@/lib/scheduler.functions";
 import { useSchedulerActions, useSchedulerRuns } from "@/lib/use-scheduler";
 import {
@@ -82,6 +84,22 @@ function SchedulerPage() {
   const runPost = useServerFn(runPostPipeline);
   const [busy, setBusy] = useState<string | null>(null);
 
+  /** Só postagens com imagem de capa entram na fila. */
+  const coversQuery = useQuery({
+    queryKey: ["posts-with-cover"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id")
+        .not("cover", "is", null)
+        .neq("cover", "");
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as { id: string }[]).map((r) => r.id);
+    },
+    staleTime: 60_000,
+  });
+  const withCover = useMemo(() => new Set(coversQuery.data ?? []), [coversQuery.data]);
+
   const items = useMemo<Item[]>(() => {
     const runs = runsQuery.data ?? [];
     if (runs.length > 0)
@@ -94,7 +112,8 @@ function SchedulerPage() {
         position: r.position,
         run: r,
       }));
-    return planForDate({ blogs, categories, posts, dateISO, todayISO }).map((i) => ({
+    if (!coversQuery.data) return [];
+    return planForDate({ blogs, categories, posts, dateISO, todayISO, withCover }).map((i) => ({
       key: `${i.blogId}-${i.postId}`,
       runId: null,
       postId: i.postId,
@@ -103,7 +122,7 @@ function SchedulerPage() {
       position: i.position,
       run: null,
     }));
-  }, [runsQuery.data, blogs, categories, posts, dateISO, todayISO]);
+  }, [runsQuery.data, coversQuery.data, withCover, blogs, categories, posts, dateISO, todayISO]);
 
   const openPost = (postId: string) => {
     void navigate({ to: "/postagens", search: { post: postId } });
@@ -142,7 +161,7 @@ function SchedulerPage() {
     <>
       <PageHeader
         title="Agendador"
-        subtitle={`Ciclo automático às ${String(RUN_HOUR_SP).padStart(2, "0")}:00 (Brasília) · 1 artigo por blog por dia (todos os dias) · até ${STEP_TIMEOUT_MIN} min por artigo`}
+        subtitle={`Ciclo automático às ${String(RUN_HOUR_SP).padStart(2, "0")}:00 (Brasília) · 1 artigo por blog por dia (todos os dias) · somente artigos com imagem de capa · até ${STEP_TIMEOUT_MIN} min por artigo`}
         action={
           <Button className="gap-2" disabled={busy !== null} onClick={() => void executeAll()}>
             {busy === "all" ? (
@@ -166,6 +185,8 @@ function SchedulerPage() {
           />
           <p className="px-3 pb-2 text-xs text-muted-foreground">
             Publicações diárias — todos os dias da semana.
+            <br />
+            Só entram na fila artigos que já possuem imagem de capa.
           </p>
         </div>
 
@@ -178,7 +199,7 @@ function SchedulerPage() {
               description={
                 dateISO < todayISO
                   ? "Não há registros de execução nesta data."
-                  : "Não há postagens em Rascunho/Estrutura suficientes na fila dos blogs para esta data."
+                  : "Não há postagens com imagem de capa em Rascunho/Estrutura na fila dos blogs para esta data."
               }
             />
           ) : (

@@ -28,13 +28,14 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 const nowISO = () => new Date().toISOString();
 
 async function loadData() {
-  const [blogsRes, catsRes, postsRes] = await Promise.all([
+  const [blogsRes, catsRes, postsRes, coverRes] = await Promise.all([
     supabase.from("blogs").select("*").order("name"),
     supabase.from("categories").select("*").order("name"),
     supabase
       .from("posts")
       .select("id,blog_id,category_id,title,content,tags,status,publish_date,created_at")
       .order("created_at"),
+    supabase.from("posts").select("id").not("cover", "is", null).neq("cover", ""),
   ]);
   const err = blogsRes.error ?? catsRes.error ?? postsRes.error;
   if (err) throw new Error(err.message);
@@ -63,16 +64,26 @@ async function loadData() {
     publishDate: r.publish_date,
     createdAt: r.created_at,
   }));
-  return { blogs, categories, posts };
+  const withCover = new Set(
+    ((coverRes.data ?? []) as { id: string }[]).map((r) => r.id),
+  );
+  return { blogs, categories, posts, withCover };
 }
 
 /** Cria os registros do dia a partir do plano (idempotente). */
 export async function ensureRuns(dateISO: string): Promise<SchedulerRunRow[]> {
-  const { blogs, categories, posts } = await loadData();
+  const { blogs, categories, posts, withCover } = await loadData();
   const existing = await listRuns(dateISO);
 
   if (isBusinessDayISO(dateISO) && dateISO >= todayInSP()) {
-    const plan = planForDate({ blogs, categories, posts, dateISO, todayISO: todayInSP() });
+    const plan = planForDate({
+      blogs,
+      categories,
+      posts,
+      dateISO,
+      todayISO: todayInSP(),
+      withCover,
+    });
     const taken = new Set(existing.map((r) => r.post_id));
     const blogsWithRun = new Set(existing.map((r) => r.blog_id));
     const missing = plan.filter((i) => !taken.has(i.postId) && !blogsWithRun.has(i.blogId));
