@@ -31,13 +31,17 @@ import {
 } from "@/lib/content-workspace";
 import {
   MIN_ARTICLE_WORDS,
+  REVIEW_SYSTEM_PROMPT,
   SYSTEM_PROMPT,
   buildCohesionPrompt,
   buildExpansionPrompt,
+  buildReviewPrompt,
   buildSectionPrompt,
   countWords,
+  parseReviewOutput,
   summarizeOutline,
 } from "@/lib/prompts";
+
 
 
 export interface WorkspaceApi {
