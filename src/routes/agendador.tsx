@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarDays, Loader2, PlayCircle, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { EmptyState, PageHeader } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { runPostPipeline, runSchedulerNow } from "@/lib/scheduler.functions";
 import { useSchedulerActions, useSchedulerRuns } from "@/lib/use-scheduler";
 import {
