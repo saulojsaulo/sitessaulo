@@ -378,33 +378,69 @@ async function generateWithOpenRouter(
   return out;
 }
 
+/** Erros que indicam limite/cota esgotada e devem acionar o próximo provedor. */
+function isQuotaError(e: unknown): boolean {
+  const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return (
+    m.includes("limite") ||
+    m.includes("crédito") ||
+    m.includes("credito") ||
+    m.includes("rate_limit") ||
+    m.includes("rate limit") ||
+    m.includes("quota")
+  );
+}
+
+async function runGroq(
+  groqKey: string,
+  prompt: string,
+  system: string | undefined,
+  meta: AiMeta,
+): Promise<string> {
+  const model = process.env["GROQ_MODEL"] || "groq/compound";
+
+  // Modelos agentic da Groq (compound) têm busca web real: ativamos as regras
+  // que exigem fonte verificável em vez de dados inventados.
+  if (model.includes("compound")) {
+    const { WEB_SEARCH_SYSTEM_ADDENDUM, WEB_SEARCH_SECTION_ADDENDUM } = await import("./prompts");
+    const sys = (system ?? "") + WEB_SEARCH_SYSTEM_ADDENDUM;
+    const userPrompt = meta.kind === "sessao" ? prompt + WEB_SEARCH_SECTION_ADDENDUM : prompt;
+    return generateWithGroq(groqKey, model, userPrompt, sys, meta);
+  }
+
+  return generateWithGroq(groqKey, model, prompt, system, meta);
+}
+
 export async function generateWithGemini(
   prompt: string,
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
   const orKey = process.env["OPENROUTER_API_KEY"];
+  const groqKey = process.env["GROQ_API_KEY"];
+
   if (orKey) {
     const model = process.env["OPENROUTER_MODEL"] || "inclusionai/ling-3.0-flash-fin:free";
-    return generateWithOpenRouter(orKey, model, prompt, system, meta);
-  }
-
-  const groqKey = process.env["GROQ_API_KEY"];
-  if (groqKey) {
-    const model = process.env["GROQ_MODEL"] || "groq/compound";
-
-    // Modelos agentic da Groq (compound) têm busca web real: ativamos as regras
-    // que exigem fonte verificável em vez de dados inventados.
-    if (model.includes("compound")) {
-      const { WEB_SEARCH_SYSTEM_ADDENDUM, WEB_SEARCH_SECTION_ADDENDUM } = await import("./prompts");
-      const sys = (system ?? "") + WEB_SEARCH_SYSTEM_ADDENDUM;
-      const userPrompt =
-        meta.kind === "sessao" ? prompt + WEB_SEARCH_SECTION_ADDENDUM : prompt;
-      return generateWithGroq(groqKey, model, userPrompt, sys, meta);
+    try {
+      return await generateWithOpenRouter(orKey, model, prompt, system, meta);
+    } catch (e) {
+      // Limite diário/cota do OpenRouter: cai automaticamente para a Groq.
+      if (!groqKey || !isQuotaError(e)) throw e;
+      console.warn("[ai] OpenRouter sem cota, alternando para Groq:", (e as Error).message);
     }
-
-    return generateWithGroq(groqKey, model, prompt, system, meta);
   }
+
+  if (groqKey) {
+    try {
+      return await runGroq(groqKey, prompt, system, meta);
+    } catch (e) {
+      const ownKeyFallback = process.env["GEMINI_API_KEY"];
+      const gatewayFallback = process.env["LOVABLE_API_KEY"];
+      if (!isQuotaError(e) || !(ownKeyFallback || gatewayFallback)) throw e;
+      console.warn("[ai] Groq sem cota, alternando para Gemini:", (e as Error).message);
+    }
+  }
+
 
   const ownKey = process.env["GEMINI_API_KEY"];
   if (ownKey) {
