@@ -382,10 +382,14 @@ async function generateWithOpenRouter(
   return out;
 }
 
-/** Erros que indicam limite/cota/tamanho e devem acionar o próximo provedor. */
+/** Erros que indicam limite/cota/tamanho/chave inválida e devem acionar o próximo provedor. */
 function isQuotaError(e: unknown): boolean {
   const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
   return (
+    m.includes("inválida") ||
+    m.includes("invalida") ||
+    m.includes("no auth credentials") ||
+    m.includes("user not found") ||
     m.includes("limite") ||
     m.includes("crédito") ||
     m.includes("credito") ||
