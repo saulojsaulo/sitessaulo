@@ -16,6 +16,7 @@ import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
 import { Route as ConexoesRouteImport } from './routes/conexoes'
 import { Route as PostagensRouteImport } from './routes/postagens'
+import { Route as ApiPublicSchedulerRunRouteImport } from './routes/api/public/scheduler.run'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const PostagensRoute = PostagensRouteImport.update({
   path: '/postagens',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSchedulerRunRoute = ApiPublicSchedulerRunRouteImport.update({
+  id: '/api/public/scheduler/run',
+  path: '/api/public/scheduler/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
+  '/api/public/scheduler/run': typeof ApiPublicSchedulerRunRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
+  '/api/public/scheduler/run': typeof ApiPublicSchedulerRunRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
+  '/api/public/scheduler/run': typeof ApiPublicSchedulerRunRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/conexoes'
     | '/postagens'
+    | '/api/public/scheduler/run'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/conexoes'
     | '/postagens'
+    | '/api/public/scheduler/run'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/conexoes'
     | '/postagens'
+    | '/api/public/scheduler/run'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   CategoriasRoute: typeof CategoriasRoute
   ConexoesRoute: typeof ConexoesRoute
   PostagensRoute: typeof PostagensRoute
+  ApiPublicSchedulerRunRoute: typeof ApiPublicSchedulerRunRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostagensRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/scheduler/run': {
+      id: '/api/public/scheduler/run'
+      path: '/api/public/scheduler/run'
+      fullPath: '/api/public/scheduler/run'
+      preLoaderRoute: typeof ApiPublicSchedulerRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriasRoute: CategoriasRoute,
   ConexoesRoute: ConexoesRoute,
   PostagensRoute: PostagensRoute,
+  ApiPublicSchedulerRunRoute: ApiPublicSchedulerRunRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
