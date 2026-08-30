@@ -317,6 +317,8 @@ async function generateWithOpenRouter(
     if (res.status === 401) return fail("Chave OPENROUTER_API_KEY inválida.");
     if (res.status === 402) return fail("Créditos do OpenRouter esgotados.");
     if (res.status === 429) return fail("Limite de requisições do OpenRouter atingido.");
+    if (res.status === 413)
+      return fail("OpenRouter: prompt muito grande para este modelo (limite de contexto).");
     if (res.status === 404)
       return fail(`Modelo OpenRouter inválido: ${model}. Ajuste a secret OPENROUTER_MODEL.`);
     return fail(`OpenRouter [${res.status}]: ${body.slice(0, 300)}`);
