@@ -157,3 +157,55 @@ alter table public.ai_usage enable row level security;
 
 create policy "public access ai_usage" on public.ai_usage
   for all using (true) with check (true);
+
+-- ============================================================
+-- Agendador automático (1 artigo por blog por dia útil, 03:00 BRT)
+-- ============================================================
+create table if not exists public.scheduler_runs (
+  id text primary key,
+  run_date date not null,
+  post_id text not null references public.posts(id) on delete cascade,
+  blog_id text not null,
+  blog_name text not null default '',
+  post_title text not null default '',
+  position integer not null default 0,
+  state text not null default 'pendente', -- pendente | executando | concluido | falhou
+  structure_at timestamptz,
+  sections_at timestamptz,
+  article_at timestamptz,
+  started_at timestamptz,
+  error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists scheduler_runs_date_post_idx
+  on public.scheduler_runs (run_date, post_id);
+create index if not exists scheduler_runs_date_idx
+  on public.scheduler_runs (run_date, position);
+
+create table if not exists public.scheduler_locks (
+  id text primary key,
+  lease_until timestamptz not null default now()
+);
+
+grant select, insert, update, delete on public.scheduler_runs to anon, authenticated;
+grant select, insert, update, delete on public.scheduler_locks to anon, authenticated;
+grant all on public.scheduler_runs to service_role;
+grant all on public.scheduler_locks to service_role;
+
+alter table public.scheduler_runs enable row level security;
+alter table public.scheduler_locks enable row level security;
+
+create policy "public access scheduler_runs" on public.scheduler_runs
+  for all using (true) with check (true);
+create policy "public access scheduler_locks" on public.scheduler_locks
+  for all using (true) with check (true);
+
+-- Cron (pg_cron + pg_net): a cada 5 min das 06:00 às 12:00 UTC = 03:00 às 09:00 BRT.
+-- select cron.schedule('postflow-agendador', '*/5 6-12 * * 1-5', $$
+--   select net.http_post(
+--     url := 'https://project--19bb9d45-cf77-409a-821a-23001dc9845c.lovable.app/api/public/scheduler/run',
+--     headers := '{"Content-Type":"application/json"}'::jsonb
+--   );
+-- $$);
