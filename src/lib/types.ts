@@ -1,9 +1,12 @@
 export type PostStatus =
   | "rascunho"
   | "estrutura"
+  | "sessoes_completas"
+  | "aguardando_revisao"
   | "artigo_completo"
   | "agendado"
   | "publicado";
+
 
 export interface Blog {
   id: string;
@@ -38,10 +41,13 @@ export interface Post {
 export const STATUS_LABEL: Record<PostStatus, string> = {
   rascunho: "Rascunho",
   estrutura: "Estrutura",
+  sessoes_completas: "Sessões Completas",
+  aguardando_revisao: "Artigo Aguardando Revisão",
   artigo_completo: "Artigo Completo",
   agendado: "Agendado",
   publicado: "Publicado",
 };
+
 
 export const BLOG_COLORS = [
   "oklch(0.58 0.204 277)",

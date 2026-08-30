@@ -5,10 +5,13 @@ import { STATUS_LABEL, type PostStatus } from "@/lib/types";
 const statusStyles: Record<PostStatus, string> = {
   rascunho: "bg-muted text-muted-foreground border-border",
   estrutura: "bg-primary/12 text-primary border-primary/25",
+  sessoes_completas: "bg-primary/20 text-primary border-primary/35",
+  aguardando_revisao: "bg-warning/12 text-warning border-warning/25",
   artigo_completo: "bg-cyan/15 text-cyan border-cyan/30",
   agendado: "bg-warning/15 text-warning border-warning/30",
   publicado: "bg-success/15 text-success border-success/30",
 };
+
 
 export function StatusBadge({ status }: { status: PostStatus }) {
   return (

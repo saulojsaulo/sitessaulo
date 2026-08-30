@@ -131,10 +131,13 @@ function Dashboard() {
     const acc: Record<PostStatus, number> = {
       rascunho: 0,
       estrutura: 0,
+      sessoes_completas: 0,
+      aguardando_revisao: 0,
       artigo_completo: 0,
       agendado: 0,
       publicado: 0,
     };
+
     for (const p of posts) acc[p.status] += 1;
     return acc;
   }, [posts]);

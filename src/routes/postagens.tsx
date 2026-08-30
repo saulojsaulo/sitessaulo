@@ -60,13 +60,15 @@ import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 export const Route = createFileRoute("/postagens")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { status?: string; blog?: string; categoria?: string } => {
-    const out: { status?: string; blog?: string; categoria?: string } = {};
+  ): { status?: string; blog?: string; categoria?: string; post?: string } => {
+    const out: { status?: string; blog?: string; categoria?: string; post?: string } = {};
     if (typeof search["status"] === "string") out.status = search["status"];
     if (typeof search["blog"] === "string") out.blog = search["blog"];
     if (typeof search["categoria"] === "string") out.categoria = search["categoria"];
+    if (typeof search["post"] === "string") out.post = search["post"];
     return out;
   },
+
   head: () => ({
     meta: [
       { title: "Postagens — PostFlow" },
@@ -300,6 +302,20 @@ function PostsPage() {
       });
     }
   };
+
+  /** Abre direto uma postagem vinda do Agendador (?post=id). */
+  const openedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = search.post;
+    if (!id || openedRef.current === id) return;
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    openedRef.current = id;
+    startEdit(post);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.post, posts]);
+
+
 
 
   const save = () => {
