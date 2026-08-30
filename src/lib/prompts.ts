@@ -185,3 +185,77 @@ export function summarizeOutline(prompts: string[]): string {
     })
     .join("\n");
 }
+
+/** System usado na revisão editorial final (saída em HTML, pronta para o WordPress). */
+export const REVIEW_SYSTEM_PROMPT = `Você é um Editor-Chefe e Publisher sênior, especialista em blogs monetizados com Google AdSense, com profundo conhecimento das políticas de conteúdo do Google (Programa de Políticas do Editor, políticas do AdSense, diretrizes de qualidade E-E-A-T) e em SEO on-page para WordPress. Responda sempre em português do Brasil e siga exatamente o formato de saída pedido, sem comentários fora dele.`;
+
+/** Revisão final: devolve HTML pronto para o campo content da REST API do WordPress. */
+export function buildReviewPrompt(article: string): string {
+  return `Sua tarefa é REVISAR o artigo abaixo (gerado por outra IA) e devolver uma versão final, corrigida e pronta para publicação automática via API no WordPress.
+
+## O QUE VOCÊ DEVE FAZER NA REVISÃO
+
+1. **Checagem de fatos e dados**
+   - Identifique afirmações desatualizadas, imprecisas, contraditórias ou que pareçam "alucinadas".
+   - Corrija números, datas, nomes e estatísticas quando estiverem claramente errados ou implausíveis.
+   - Se não tiver certeza sobre um dado específico, generalize a frase em vez de manter uma informação arriscada.
+
+2. **Conformidade com políticas do Google AdSense**
+   - Remova ou reescreva qualquer trecho que toque em temas sensíveis ou de risco para monetização: violência, conteúdo adulto/sexual, discurso de ódio, drogas ilícitas, jogos de azar, armas, conteúdo político polarizado, alegações médicas/financeiras não verificadas (YMYL), automutilação, tragédias específicas, ou linguagem sensacionalista/clickbait enganoso.
+   - Garanta tom neutro, informativo e family-friendly, sem prejudicar a qualidade do conteúdo.
+   - Evite superlativos exagerados e promessas irreais.
+
+3. **Qualidade editorial**
+   - Melhore a fluidez, elimine repetições e redundâncias.
+   - Garanta introdução envolvente, desenvolvimento estruturado e conclusão com fechamento claro (CTA suave, sem apelação).
+   - Mantenha linguagem natural e humana — nada de texto robótico ou genérico.
+
+4. **Estrutura obrigatória para WordPress (HTML)**
+   - Use exclusivamente tags HTML válidas, sem markdown (nada de **, ##, - etc.).
+   - Não repita um <h1> no corpo: use <h2> para as seções principais, <h3> para subseções e <p> para parágrafos.
+   - Inclua ao menos 1 tabela em <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table> sempre que fizer sentido comparar dados, opções ou características.
+   - Listas em <ul>/<li> ou <ol>/<li> quando aplicável.
+   - Não use <script>, <style> ou classes CSS.
+
+5. **Tamanho**
+   - O artigo final deve ter no mínimo ${MIN_ARTICLE_WORDS} palavras. Se o original for menor, expanda as seções existentes com informações relevantes, exemplos práticos, FAQ ou conclusão mais completa — sem enrolação nem repetição artificial.
+
+6. **SEO básico**
+   - Verifique se a palavra-chave principal aparece no primeiro parágrafo e em pelo menos um <h2>.
+   - Sugira, na seção META, um meta title (até 60 caracteres) e uma meta description (até 155 caracteres) otimizados.
+
+## FORMATO DA RESPOSTA (OBRIGATÓRIO)
+
+Responda APENAS com o seguinte, sem nenhum comentário, explicação ou texto fora dessas seções:
+
+[ARTIGO]
+(aqui vai todo o HTML do artigo revisado, pronto para ser inserido no campo "content" da API do WordPress)
+[/ARTIGO]
+
+[META]
+Título SEO: ...
+Meta description: ...
+[/META]
+
+Não adicione observações, não peça desculpas, não explique o que você mudou. Apenas entregue o resultado final pronto para publicação automática.
+
+---
+
+ARTIGO ORIGINAL PARA REVISÃO:
+
+${article}`;
+}
+
+/** Extrai o HTML e o bloco META da resposta da revisão. */
+export function parseReviewOutput(text: string): { article: string; meta: string } {
+  const art = /\[ARTIGO\]([\s\S]*?)\[\/ARTIGO\]/i.exec(text);
+  const meta = /\[META\]([\s\S]*?)\[\/META\]/i.exec(text);
+  const fallback = text
+    .replace(/\[\/?ARTIGO\]/gi, "")
+    .replace(/\[META\][\s\S]*$/i, "")
+    .trim();
+  return {
+    article: (art?.[1] ?? fallback).trim(),
+    meta: (meta?.[1] ?? "").trim(),
+  };
+}

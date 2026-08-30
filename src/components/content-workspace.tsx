@@ -9,6 +9,7 @@ import {
   Pencil,
   RotateCcw,
   Save,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Wand2,
@@ -31,13 +32,17 @@ import {
 } from "@/lib/content-workspace";
 import {
   MIN_ARTICLE_WORDS,
+  REVIEW_SYSTEM_PROMPT,
   SYSTEM_PROMPT,
   buildCohesionPrompt,
   buildExpansionPrompt,
+  buildReviewPrompt,
   buildSectionPrompt,
   countWords,
+  parseReviewOutput,
   summarizeOutline,
 } from "@/lib/prompts";
+
 
 
 export interface WorkspaceApi {
@@ -69,12 +74,12 @@ interface Props {
 
 export async function askGemini(
   prompt: string,
-  meta?: { kind?: string; postId?: string | null; postTitle?: string | null },
+  meta?: { kind?: string; postId?: string | null; postTitle?: string | null; system?: string },
 ) {
   const res = await generateText({
     data: {
       prompt,
-      system: SYSTEM_PROMPT,
+      system: meta?.system ?? SYSTEM_PROMPT,
       kind: meta?.kind ?? "outro",
       postId: meta?.postId ?? null,
       postTitle: meta?.postTitle ?? null,
@@ -82,6 +87,7 @@ export async function askGemini(
   });
   return res.text;
 }
+
 
 
 
@@ -100,6 +106,9 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const [tab, setTab] = useState("bruta");
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [editorial, setEditorial] = useState(false);
+  const [meta, setMeta] = useState("");
+
 
   const loadedFor = useRef(resetKey);
   const wsRef = useRef(ws);
@@ -223,6 +232,38 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
       setReviewing(false);
     }
   };
+
+  /** Revisão editorial final: devolve HTML pronto para o WordPress + META de SEO. */
+  const reviewContent = async () => {
+    const current = wsRef.current.manual
+      ? wsRef.current.article
+      : buildArticle(wsRef.current.sections);
+    if (!current.trim()) return;
+    setEditorial(true);
+    try {
+      const raw = await askGemini(buildReviewPrompt(current), {
+        kind: "revisao",
+        postId,
+        postTitle: title,
+        system: REVIEW_SYSTEM_PROMPT,
+      });
+      if (!raw) throw new Error("A IA não retornou conteúdo");
+      const parsed = parseReviewOutput(raw);
+      if (!parsed.article) throw new Error("Não foi possível extrair o artigo revisado");
+      commit({ ...wsRef.current, article: parsed.article, manual: true });
+      setMeta(parsed.meta);
+      const words = countWords(parsed.article);
+      if (words < MIN_ARTICLE_WORDS)
+        toast.warning(`Conteúdo revisado com ${words} palavras (mínimo ${MIN_ARTICLE_WORDS}).`);
+      else toast.success(`Conteúdo revisado em HTML — ${words} palavras`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao revisar o conteúdo");
+    } finally {
+      setEditorial(false);
+    }
+  };
+
+
 
 
   const generateAll = async () => {
@@ -362,6 +403,20 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
           </Button>
           <Button
             type="button"
+            className="gap-2"
+            disabled={!article.trim() || editorial}
+            onClick={() => void reviewContent()}
+          >
+            {editorial ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="size-4" />
+            )}
+            Revisar Conteúdo
+          </Button>
+
+          <Button
+            type="button"
             variant="secondary"
             className="gap-2"
             onClick={() => {
@@ -392,6 +447,23 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             onConfirm={() => commit({ ...ws, article: "", manual: true })}
           />
         </div>
+        {meta ? (
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <div className="mb-1.5 flex items-center gap-2">
+              <Label className="text-xs">META (SEO sugerido pela revisão)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto gap-1.5"
+                onClick={() => void copy(meta, "META copiado!")}
+              >
+                <Copy className="size-3.5" /> Copiar
+              </Button>
+            </div>
+            <pre className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">{meta}</pre>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           <QuickPublish
             postId={postId}
