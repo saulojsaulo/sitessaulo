@@ -202,8 +202,10 @@ create policy "public access scheduler_runs" on public.scheduler_runs
 create policy "public access scheduler_locks" on public.scheduler_locks
   for all using (true) with check (true);
 
--- Cron (pg_cron + pg_net): a cada 5 min das 06:00 às 12:00 UTC = 03:00 às 09:00 BRT.
--- select cron.schedule('postflow-agendador', '*/5 6-12 * * *', $$
+-- Cron (pg_cron + pg_net): a cada 1 min das 06:00 às 12:00 UTC = 03:00 às 09:00 BRT.
+-- Cada chamada avança as etapas que couberem em ~55s e retoma na chamada seguinte.
+-- select cron.schedule('postflow-agendador', '* 6-12 * * *', $$
+
 --   select net.http_post(
 --     url := 'https://project--19bb9d45-cf77-409a-821a-23001dc9845c.lovable.app/api/public/scheduler/run',
 --     headers := '{"Content-Type":"application/json"}'::jsonb

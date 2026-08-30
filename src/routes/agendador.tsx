@@ -146,8 +146,14 @@ function SchedulerPage() {
   const executeItem = async (item: Item) => {
     setBusy(item.key);
     try {
-      await runPost({ data: { postId: item.postId, ...(item.runId ? { runId: item.runId } : {}) } });
-      toast.success(`"${item.postTitle}" chegou em Artigo Aguardando Revisão`);
+      const res = await runPost({
+        data: { postId: item.postId, ...(item.runId ? { runId: item.runId } : {}) },
+      });
+      if (res.done) toast.success(`"${item.postTitle}" chegou em Artigo Aguardando Revisão`);
+      else
+        toast.info(
+          `"${item.postTitle}": ${res.steps} etapa(s) concluída(s) — o ciclo continua automaticamente.`,
+        );
       invalidate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao processar o artigo");
@@ -155,6 +161,7 @@ function SchedulerPage() {
       setBusy(null);
     }
   };
+
 
   const hour = nowHourSP();
 
