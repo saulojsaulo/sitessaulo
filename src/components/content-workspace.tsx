@@ -9,6 +9,7 @@ import {
   Pencil,
   RotateCcw,
   Save,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Wand2,
@@ -446,6 +447,23 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             onConfirm={() => commit({ ...ws, article: "", manual: true })}
           />
         </div>
+        {meta ? (
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <div className="mb-1.5 flex items-center gap-2">
+              <Label className="text-xs">META (SEO sugerido pela revisão)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto gap-1.5"
+                onClick={() => void copy(meta, "META copiado!")}
+              >
+                <Copy className="size-3.5" /> Copiar
+              </Button>
+            </div>
+            <pre className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">{meta}</pre>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           <QuickPublish
             postId={postId}
