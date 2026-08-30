@@ -185,6 +185,8 @@ function SchedulerPage() {
           />
           <p className="px-3 pb-2 text-xs text-muted-foreground">
             Publicações diárias — todos os dias da semana.
+            <br />
+            Só entram na fila artigos que já possuem imagem de capa.
           </p>
         </div>
 
@@ -197,7 +199,7 @@ function SchedulerPage() {
               description={
                 dateISO < todayISO
                   ? "Não há registros de execução nesta data."
-                  : "Não há postagens em Rascunho/Estrutura suficientes na fila dos blogs para esta data."
+                  : "Não há postagens com imagem de capa em Rascunho/Estrutura na fila dos blogs para esta data."
               }
             />
           ) : (
