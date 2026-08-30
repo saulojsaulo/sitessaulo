@@ -144,7 +144,7 @@ function SchedulerPage() {
     <>
       <PageHeader
         title="Agendador"
-        subtitle={`Ciclo automático às ${String(RUN_HOUR_SP).padStart(2, "0")}:00 (Brasília) · 1 artigo por blog por dia útil · até ${STEP_TIMEOUT_MIN} min por artigo`}
+        subtitle={`Ciclo automático às ${String(RUN_HOUR_SP).padStart(2, "0")}:00 (Brasília) · 1 artigo por blog por dia (todos os dias) · até ${STEP_TIMEOUT_MIN} min por artigo`}
         action={
           <Button className="gap-2" disabled={busy !== null || weekend} onClick={() => void executeAll()}>
             {busy === "all" ? (
