@@ -69,12 +69,12 @@ interface Props {
 
 export async function askGemini(
   prompt: string,
-  meta?: { kind?: string; postId?: string | null; postTitle?: string | null },
+  meta?: { kind?: string; postId?: string | null; postTitle?: string | null; system?: string },
 ) {
   const res = await generateText({
     data: {
       prompt,
-      system: SYSTEM_PROMPT,
+      system: meta?.system ?? SYSTEM_PROMPT,
       kind: meta?.kind ?? "outro",
       postId: meta?.postId ?? null,
       postTitle: meta?.postTitle ?? null,
@@ -82,6 +82,7 @@ export async function askGemini(
   });
   return res.text;
 }
+
 
 
 
