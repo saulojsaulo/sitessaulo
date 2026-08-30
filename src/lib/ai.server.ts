@@ -178,6 +178,8 @@ async function generateWithGroq(
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
     if (res.status === 401) return fail("Chave GROQ_API_KEY inválida.");
+    if (res.status === 413)
+      return fail("Groq: prompt muito grande para este modelo (limite de contexto).");
     if (res.status === 429) return fail("Limite de requisições da sua conta Groq atingido.");
     if (res.status === 404)
       return fail(`Modelo Groq inválido: ${model}. Ajuste a secret GROQ_MODEL.`);
