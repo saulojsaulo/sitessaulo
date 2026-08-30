@@ -427,6 +427,7 @@ export async function generateWithGemini(
   const orKeys = [
     process.env["OPENROUTER_API_KEY"],
     process.env["OPENROUTER_API_KEY_2"],
+    process.env["OPENROUTER_API_KEY_3"],
   ].filter((k): k is string => !!k);
   const groqKey = process.env["GROQ_API_KEY"];
 
