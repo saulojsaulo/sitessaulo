@@ -19,9 +19,9 @@ export const runPostPipeline = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const { runPipeline } = await import("./scheduler.server");
-    await runPipeline(data.postId, data.runId);
-    return { ok: true };
+    return runPipeline(data.postId, data.runId);
   });
+
 
 /** Garante que os registros de uma data existem e devolve a lista. */
 export const ensureSchedulerRuns = createServerFn({ method: "POST" })
