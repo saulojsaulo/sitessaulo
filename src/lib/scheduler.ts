@@ -100,12 +100,23 @@ const PENDING_STATUS = new Set(["rascunho", "estrutura", "sessoes_completas"]);
  * Fila de um blog em round-robin de categorias: Cat A, Cat B, Cat C… e volta
  * para Cat A, para nunca publicar duas vezes a mesma categoria em sequência.
  */
-export function blogQueue(posts: Post[], categories: Category[], blogId: string): Post[] {
+export function blogQueue(
+  posts: Post[],
+  categories: Category[],
+  blogId: string,
+  /** Ids de postagens que possuem imagem de capa. Se informado, só elas entram na fila. */
+  withCover?: Set<string>,
+): Post[] {
   const catName = (id?: string) =>
     categories.find((c) => c.id === id)?.name ?? "\uffffSem categoria";
 
   const eligible = posts
-    .filter((p) => p.blogId === blogId && PENDING_STATUS.has(p.status))
+    .filter(
+      (p) =>
+        p.blogId === blogId &&
+        PENDING_STATUS.has(p.status) &&
+        (withCover ? withCover.has(p.id) : true),
+    )
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.title.localeCompare(b.title));
 
   const groups = new Map<string, Post[]>();
