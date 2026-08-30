@@ -9,6 +9,8 @@ export interface AiMeta {
   kind?: string;
   postId?: string | null;
   postTitle?: string | null;
+  /** Nome da secret usada na chamada (aparece em mensagens de erro). */
+  keyLabel?: string;
 }
 
 /** Chamada direta à API do Google (chave própria do usuário). */
@@ -314,7 +316,10 @@ async function generateWithOpenRouter(
 
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
-    if (res.status === 401) return fail("Chave OPENROUTER_API_KEY inválida.");
+    if (res.status === 401)
+      return fail(
+        `Chave OpenRouter inválida ou revogada (${meta.keyLabel ?? "OPENROUTER_API_KEY"}). Detalhe: ${body.slice(0, 160)}`,
+      );
     if (res.status === 402) return fail("Créditos do OpenRouter esgotados.");
     if (res.status === 429) return fail("Limite de requisições do OpenRouter atingido.");
     if (res.status === 413)
@@ -382,10 +387,14 @@ async function generateWithOpenRouter(
   return out;
 }
 
-/** Erros que indicam limite/cota/tamanho e devem acionar o próximo provedor. */
+/** Erros que indicam limite/cota/tamanho/chave inválida e devem acionar o próximo provedor. */
 function isQuotaError(e: unknown): boolean {
   const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
   return (
+    m.includes("inválida") ||
+    m.includes("invalida") ||
+    m.includes("no auth credentials") ||
+    m.includes("user not found") ||
     m.includes("limite") ||
     m.includes("crédito") ||
     m.includes("credito") ||
@@ -424,24 +433,28 @@ export async function generateWithGemini(
   system?: string,
   meta: AiMeta = {},
 ): Promise<string> {
-  const orKeys = [
-    process.env["OPENROUTER_API_KEY"],
-    process.env["OPENROUTER_API_KEY_2"],
-    process.env["OPENROUTER_API_KEY_3"],
-  ].filter((k): k is string => !!k);
+  const orKeys: { label: string; key: string }[] = [
+    { label: "OPENROUTER_API_KEY", key: process.env["OPENROUTER_API_KEY"]?.trim() ?? "" },
+    { label: "OPENROUTER_API_KEY_2", key: process.env["OPENROUTER_API_KEY_2"]?.trim() ?? "" },
+    { label: "OPENROUTER_API_KEY_3", key: process.env["OPENROUTER_API_KEY_3"]?.trim() ?? "" },
+  ].filter((k) => k.key !== "");
   const groqKey = process.env["GROQ_API_KEY"];
 
   if (orKeys.length) {
     const model = process.env["OPENROUTER_MODEL"] || "inclusionai/ling-3.0-flash-fin:free";
     for (let i = 0; i < orKeys.length; i++) {
+      const entry = orKeys[i]!;
       try {
-        return await generateWithOpenRouter(orKeys[i]!, model, prompt, system, meta);
+        return await generateWithOpenRouter(entry.key, model, prompt, system, {
+          ...meta,
+          keyLabel: entry.label,
+        });
       } catch (e) {
         if (!isQuotaError(e)) throw e;
         const next = orKeys[i + 1];
         if (next) {
           console.warn(
-            `[ai] Chave OpenRouter #${i + 1} sem cota, tentando chave #${i + 2}:`,
+            `[ai] ${entry.label} indisponível, tentando ${next.label}:`,
             (e as Error).message,
           );
           continue;
