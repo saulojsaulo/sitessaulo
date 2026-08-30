@@ -1,9 +1,12 @@
 export type PostStatus =
   | "rascunho"
   | "estrutura"
+  | "sessoes_completas"
+  | "aguardando_revisao"
   | "artigo_completo"
   | "agendado"
   | "publicado";
+
 
 export interface Blog {
   id: string;
