@@ -159,7 +159,7 @@ create policy "public access ai_usage" on public.ai_usage
   for all using (true) with check (true);
 
 -- ============================================================
--- Agendador automático (1 artigo por blog por dia útil, 03:00 BRT)
+-- Agendador automático (1 artigo por blog por dia, 03:00 BRT)
 -- ============================================================
 create table if not exists public.scheduler_runs (
   id text primary key,
@@ -203,7 +203,7 @@ create policy "public access scheduler_locks" on public.scheduler_locks
   for all using (true) with check (true);
 
 -- Cron (pg_cron + pg_net): a cada 5 min das 06:00 às 12:00 UTC = 03:00 às 09:00 BRT.
--- select cron.schedule('postflow-agendador', '*/5 6-12 * * 1-5', $$
+-- select cron.schedule('postflow-agendador', '*/5 6-12 * * *', $$
 --   select net.http_post(
 --     url := 'https://project--19bb9d45-cf77-409a-821a-23001dc9845c.lovable.app/api/public/scheduler/run',
 --     headers := '{"Content-Type":"application/json"}'::jsonb

@@ -13,7 +13,6 @@ import {
   RUN_HOUR_SP,
   STEPS,
   STEP_TIMEOUT_MIN,
-  isBusinessDayISO,
   nowHourSP,
   planForDate,
   stepTone,
@@ -32,12 +31,12 @@ export const Route = createFileRoute("/agendador")({
       {
         name: "description",
         content:
-          "Fila automática de artigos por blog e dia útil, com linha do tempo das etapas de geração com IA às 03:00.",
+          "Fila automática de artigos por blog, todos os dias, com linha do tempo das etapas de geração com IA às 03:00.",
       },
       { property: "og:title", content: "Agendador de Artigos — PostFlow" },
       {
         property: "og:description",
-        content: "1 artigo por blog por dia útil, com etapas Estrutura, Sessões e Aguardando Revisão.",
+        content: "1 artigo por blog por dia, com etapas Estrutura, Sessões e Aguardando Revisão.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -137,16 +136,15 @@ function SchedulerPage() {
     }
   };
 
-  const weekend = !isBusinessDayISO(dateISO);
   const hour = nowHourSP();
 
   return (
     <>
       <PageHeader
         title="Agendador"
-        subtitle={`Ciclo automático às ${String(RUN_HOUR_SP).padStart(2, "0")}:00 (Brasília) · 1 artigo por blog por dia útil · até ${STEP_TIMEOUT_MIN} min por artigo`}
+        subtitle={`Ciclo automático às ${String(RUN_HOUR_SP).padStart(2, "0")}:00 (Brasília) · 1 artigo por blog por dia (todos os dias) · até ${STEP_TIMEOUT_MIN} min por artigo`}
         action={
-          <Button className="gap-2" disabled={busy !== null || weekend} onClick={() => void executeAll()}>
+          <Button className="gap-2" disabled={busy !== null} onClick={() => void executeAll()}>
             {busy === "all" ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -167,18 +165,13 @@ function SchedulerPage() {
             className="rounded-md"
           />
           <p className="px-3 pb-2 text-xs text-muted-foreground">
-            Somente segunda a sexta recebem publicações.
+            Publicações diárias — todos os dias da semana.
           </p>
         </div>
 
         <div className="min-w-0">
-          {weekend ? (
-            <EmptyState
-              icon={<CalendarDays className="size-7" />}
-              title="Fim de semana"
-              description="As publicações acontecem de segunda a sexta-feira. Escolha um dia útil no calendário."
-            />
-          ) : items.length === 0 ? (
+          {items.length === 0 ? (
+
             <EmptyState
               icon={<CalendarDays className="size-7" />}
               title="Nenhum artigo para esta data"

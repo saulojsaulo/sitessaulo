@@ -1,5 +1,5 @@
 /**
- * Agendador automático: planeja 1 artigo por blog por dia útil e registra
+ * Agendador automático: planeja 1 artigo por blog por dia e registra
  * o progresso das 3 etapas (Estrutura → Sessões Completas → Aguardando Revisão).
  * Este módulo é puro (usado no cliente e no servidor).
  */
@@ -55,10 +55,11 @@ export const parseISODate = (iso: string) => {
 export const toISODate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** Segunda a sexta. */
-export const isBusinessDay = (d: Date) => d.getDay() >= 1 && d.getDay() <= 5;
+/** Publicações são diárias: todos os dias da semana entram na fila. */
+export const isBusinessDay = (_d: Date) => true;
 
 export const isBusinessDayISO = (iso: string) => isBusinessDay(parseISODate(iso));
+
 
 /**
  * Posição do dia útil `dateISO` contando a partir de `fromISO` (índice 0 =
@@ -81,7 +82,7 @@ export function businessDayIndex(fromISO: string, dateISO: string): number | nul
   return null;
 }
 
-/** Próximos `count` dias úteis a partir de `fromISO` (inclusive). */
+/** Próximos `count` dias a partir de `fromISO` (inclusive). */
 export function nextBusinessDays(fromISO: string, count: number): string[] {
   const out: string[] = [];
   const cursor = parseISODate(fromISO);
@@ -139,7 +140,7 @@ export interface PlanItem {
 
 /**
  * Plano projetado para uma data: 1 artigo por blog, blogs em ordem alfabética.
- * Só projeta datas futuras/hoje em dias úteis — o passado vem dos registros salvos.
+ * Só projeta datas futuras/hoje — o passado vem dos registros salvos.
  */
 export function planForDate(input: {
   blogs: Blog[];

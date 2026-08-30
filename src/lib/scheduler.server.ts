@@ -223,7 +223,6 @@ export interface RunResult {
  * (fuso São Paulo), processa a fila do dia em ordem alfabética de blog.
  */
 export async function runScheduler(dateISO = todayInSP()): Promise<RunResult> {
-  if (!isBusinessDayISO(dateISO)) return { ok: true, message: "Fim de semana — nada a fazer" };
   if (!(await acquireLock())) return { ok: true, message: "Outra execução em andamento" };
 
   try {
