@@ -64,16 +64,26 @@ async function loadData() {
     publishDate: r.publish_date,
     createdAt: r.created_at,
   }));
-  return { blogs, categories, posts };
+  const withCover = new Set(
+    ((coverRes.data ?? []) as { id: string }[]).map((r) => r.id),
+  );
+  return { blogs, categories, posts, withCover };
 }
 
 /** Cria os registros do dia a partir do plano (idempotente). */
 export async function ensureRuns(dateISO: string): Promise<SchedulerRunRow[]> {
-  const { blogs, categories, posts } = await loadData();
+  const { blogs, categories, posts, withCover } = await loadData();
   const existing = await listRuns(dateISO);
 
   if (isBusinessDayISO(dateISO) && dateISO >= todayInSP()) {
-    const plan = planForDate({ blogs, categories, posts, dateISO, todayISO: todayInSP() });
+    const plan = planForDate({
+      blogs,
+      categories,
+      posts,
+      dateISO,
+      todayISO: todayInSP(),
+      withCover,
+    });
     const taken = new Set(existing.map((r) => r.post_id));
     const blogsWithRun = new Set(existing.map((r) => r.blog_id));
     const missing = plan.filter((i) => !taken.has(i.postId) && !blogsWithRun.has(i.blogId));
