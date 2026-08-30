@@ -402,6 +402,20 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
           </Button>
           <Button
             type="button"
+            className="gap-2"
+            disabled={!article.trim() || editorial}
+            onClick={() => void reviewContent()}
+          >
+            {editorial ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="size-4" />
+            )}
+            Revisar Conteúdo
+          </Button>
+
+          <Button
+            type="button"
             variant="secondary"
             className="gap-2"
             onClick={() => {
