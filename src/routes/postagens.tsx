@@ -56,6 +56,8 @@ import {
   type PageStat,
 } from "@/lib/use-ga4";
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/postagens")({
   validateSearch: (
@@ -171,6 +173,7 @@ function PostsPage() {
   const [catFilter, setCatFilter] = useState(search.categoria ?? "all");
   const [statusFilter, setStatusFilter] = useState(search.status ?? "all");
   const [tagFilter, setTagFilter] = useState("all");
+  const [coverFilter, setCoverFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("date-desc");
 
@@ -207,6 +210,22 @@ function PostsPage() {
     return matchPage(pages, post.title);
   };
 
+  /** IDs de postagens que já possuem imagem de capa. */
+  const coversQuery = useQuery({
+    queryKey: ["posts-with-cover"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id")
+        .not("cover", "is", null)
+        .neq("cover", "");
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as { id: string }[]).map((r) => r.id);
+    },
+    staleTime: 60_000,
+  });
+  const withCover = useMemo(() => new Set(coversQuery.data ?? []), [coversQuery.data]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = posts.filter((p) => {
@@ -216,6 +235,11 @@ function PostsPage() {
       } else if (catFilter !== "all" && p.categoryId !== catFilter) return false;
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (tagFilter !== "all" && !p.tags.includes(tagFilter)) return false;
+      if (coverFilter !== "all") {
+        const has = Boolean(p.cover) || withCover.has(p.id);
+        if (coverFilter === "sem" && has) return false;
+        if (coverFilter === "com" && !has) return false;
+      }
       if (q) {
         const hit =
           p.title.toLowerCase().includes(q) || p.tags.some((t) => t.toLowerCase().includes(q));
@@ -262,7 +286,18 @@ function PostsPage() {
       }
     }
     return rotated;
-  }, [posts, blogFilter, catFilter, statusFilter, tagFilter, query, sort, categories]);
+  }, [
+    posts,
+    blogFilter,
+    catFilter,
+    statusFilter,
+    tagFilter,
+    coverFilter,
+    withCover,
+    query,
+    sort,
+    categories,
+  ]);
 
 
   const startCreate = () => {
@@ -421,7 +456,7 @@ function PostsPage() {
         }
       />
 
-      <div className="surface mb-6 grid gap-3 p-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="surface mb-6 grid gap-3 p-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="relative md:col-span-3 lg:col-span-1">
           <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
           <Input
@@ -473,8 +508,18 @@ function PostsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={coverFilter} onValueChange={setCoverFilter}>
+          <SelectTrigger aria-label="Filtrar por imagem de capa">
+            <SelectValue placeholder="Imagem" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Com e sem imagem</SelectItem>
+            <SelectItem value="sem">Sem imagem</SelectItem>
+            <SelectItem value="com">Com imagem</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex gap-2">
-          <Select value={tagFilter} onValueChange={setTagFilter}>
+        <Select value={tagFilter} onValueChange={setTagFilter}>
             <SelectTrigger aria-label="Filtrar por palavra-chave">
               <SelectValue placeholder="Tag" />
             </SelectTrigger>
