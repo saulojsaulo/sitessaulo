@@ -508,17 +508,17 @@ function PostsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={coverFilter} onValueChange={setCoverFilter}>
+          <SelectTrigger aria-label="Filtrar por imagem de capa">
+            <SelectValue placeholder="Imagem" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Com e sem imagem</SelectItem>
+            <SelectItem value="sem">Sem imagem</SelectItem>
+            <SelectItem value="com">Com imagem</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex gap-2">
-            <Select value={coverFilter} onValueChange={setCoverFilter}>
-            <SelectTrigger aria-label="Filtrar por imagem de capa">
-              <SelectValue placeholder="Imagem" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Com e sem imagem</SelectItem>
-              <SelectItem value="sem">Sem imagem</SelectItem>
-              <SelectItem value="com">Com imagem</SelectItem>
-            </SelectContent>
-          </Select>
         <Select value={tagFilter} onValueChange={setTagFilter}>
             <SelectTrigger aria-label="Filtrar por palavra-chave">
               <SelectValue placeholder="Tag" />
