@@ -106,6 +106,8 @@ export function blogQueue(
   blogId: string,
   /** Ids de postagens que possuem imagem de capa. Se informado, só elas entram na fila. */
   withCover?: Set<string>,
+  /** Inclui postagens em qualquer status (usado na visão de calendário). */
+  includeAllStatuses?: boolean,
 ): Post[] {
   const catName = (id?: string) =>
     categories.find((c) => c.id === id)?.name ?? "\uffffSem categoria";
@@ -114,9 +116,10 @@ export function blogQueue(
     .filter(
       (p) =>
         p.blogId === blogId &&
-        PENDING_STATUS.has(p.status) &&
+        (includeAllStatuses || PENDING_STATUS.has(p.status)) &&
         (withCover ? withCover.has(p.id) : true),
     )
+
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.title.localeCompare(b.title));
 
   const groups = new Map<string, Post[]>();
@@ -145,13 +148,21 @@ export interface PlanItem {
   postTitle: string;
   blogId: string;
   blogName: string;
+  categoryId?: string | undefined;
   /** Ordem de execução no dia (blogs em ordem alfabética). */
   position: number;
 }
 
+/** Ciclos de postagem diários. */
+export const CYCLES = [
+  { key: "manha", label: "Manhã" },
+  { key: "tarde", label: "Tarde" },
+] as const;
+export type CycleKey = (typeof CYCLES)[number]["key"];
+
 /**
- * Plano projetado para uma data: 1 artigo por blog, blogs em ordem alfabética.
- * Só projeta datas futuras/hoje — o passado vem dos registros salvos.
+ * Plano projetado para uma data: 1 artigo por blog por ciclo, blogs em ordem
+ * alfabética. Com 2 ciclos por dia, o artigo de cada ciclo é sempre diferente.
  */
 export function planForDate(input: {
   blogs: Blog[];
@@ -161,15 +172,33 @@ export function planForDate(input: {
   todayISO: string;
   /** Só postagens com imagem de capa entram na fila. */
   withCover?: Set<string>;
+  /** Índice do ciclo do dia (0 = manhã, 1 = tarde). */
+  cycle?: number;
+  /** Total de ciclos por dia. */
+  cyclesPerDay?: number;
+  /** Inclui postagens em qualquer status (visão de calendário). */
+  includeAllStatuses?: boolean;
 }): PlanItem[] {
-  const { blogs, categories, posts, dateISO, todayISO, withCover } = input;
-  const offset = businessDayIndex(todayISO, dateISO);
-  if (offset === null) return [];
+  const {
+    blogs,
+    categories,
+    posts,
+    dateISO,
+    todayISO,
+    withCover,
+    cycle = 0,
+    cyclesPerDay = 1,
+    includeAllStatuses,
+  } = input;
+  const dayIndex = businessDayIndex(todayISO, dateISO);
+  if (dayIndex === null) return [];
+  const offset = dayIndex * cyclesPerDay + cycle;
 
   const ordered = [...blogs].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const items: PlanItem[] = [];
   for (const blog of ordered) {
-    const queue = blogQueue(posts, categories, blog.id, withCover);
+    const queue = blogQueue(posts, categories, blog.id, withCover, includeAllStatuses);
+
     const post = queue[offset];
     if (!post) continue;
     items.push({
@@ -177,11 +206,13 @@ export function planForDate(input: {
       postTitle: post.title,
       blogId: blog.id,
       blogName: blog.name,
+      categoryId: post.categoryId,
       position: items.length,
     });
   }
   return items;
 }
+
 
 export type DotTone = "pendente" | "ok" | "atraso" | "falha";
 
