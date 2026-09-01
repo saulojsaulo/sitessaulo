@@ -176,6 +176,8 @@ export function planForDate(input: {
   cycle?: number;
   /** Total de ciclos por dia. */
   cyclesPerDay?: number;
+  /** Inclui postagens em qualquer status (visão de calendário). */
+  includeAllStatuses?: boolean;
 }): PlanItem[] {
   const {
     blogs,
@@ -186,6 +188,7 @@ export function planForDate(input: {
     withCover,
     cycle = 0,
     cyclesPerDay = 1,
+    includeAllStatuses,
   } = input;
   const dayIndex = businessDayIndex(todayISO, dateISO);
   if (dayIndex === null) return [];
@@ -194,7 +197,8 @@ export function planForDate(input: {
   const ordered = [...blogs].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const items: PlanItem[] = [];
   for (const blog of ordered) {
-    const queue = blogQueue(posts, categories, blog.id, withCover);
+    const queue = blogQueue(posts, categories, blog.id, withCover, includeAllStatuses);
+
     const post = queue[offset];
     if (!post) continue;
     items.push({
