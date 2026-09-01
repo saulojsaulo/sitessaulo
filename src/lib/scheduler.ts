@@ -106,6 +106,8 @@ export function blogQueue(
   blogId: string,
   /** Ids de postagens que possuem imagem de capa. Se informado, só elas entram na fila. */
   withCover?: Set<string>,
+  /** Inclui postagens em qualquer status (usado na visão de calendário). */
+  includeAllStatuses?: boolean,
 ): Post[] {
   const catName = (id?: string) =>
     categories.find((c) => c.id === id)?.name ?? "\uffffSem categoria";
@@ -114,9 +116,10 @@ export function blogQueue(
     .filter(
       (p) =>
         p.blogId === blogId &&
-        PENDING_STATUS.has(p.status) &&
+        (includeAllStatuses || PENDING_STATUS.has(p.status)) &&
         (withCover ? withCover.has(p.id) : true),
     )
+
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.title.localeCompare(b.title));
 
   const groups = new Map<string, Post[]>();
