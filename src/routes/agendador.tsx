@@ -9,10 +9,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
-import { supabase } from "@/lib/supabase";
-import { runPostPipeline } from "@/lib/scheduler.functions";
-import { CYCLES, planForDate, toISODate, todayInSP, type CycleKey } from "@/lib/scheduler";
+import { runPostPipeline, getPlanForDate } from "@/lib/scheduler.functions";
+import { CYCLES, toISODate, type CycleKey } from "@/lib/scheduler";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/agendador")({
   head: () => ({
