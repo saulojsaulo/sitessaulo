@@ -9,10 +9,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
-import { supabase } from "@/lib/supabase";
-import { runPostPipeline } from "@/lib/scheduler.functions";
-import { CYCLES, planForDate, toISODate, todayInSP, type CycleKey } from "@/lib/scheduler";
+import { runPostPipeline, getPlanForDate } from "@/lib/scheduler.functions";
+import { CYCLES, toISODate, type CycleKey } from "@/lib/scheduler";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/agendador")({
   head: () => ({
@@ -37,46 +37,37 @@ export const Route = createFileRoute("/agendador")({
 
 function SchedulerPage() {
   const navigate = useNavigate();
-  const { blogs, categories, posts } = useStore();
-  const todayISO = todayInSP();
+  const { categories, posts } = useStore();
   const [date, setDate] = useState<Date>(() => new Date());
   const [cycle, setCycle] = useState<CycleKey>("manha");
   const dateISO = toISODate(date);
   const [busy, setBusy] = useState<string | null>(null);
   const runPost = useServerFn(runPostPipeline);
-
-  /** Só postagens com imagem de capa entram na fila. */
-  const coversQuery = useQuery({
-    queryKey: ["posts-with-cover"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id")
-        .not("cover", "is", null)
-        .neq("cover", "");
-      if (error) throw new Error(error.message);
-      return ((data ?? []) as { id: string }[]).map((r) => r.id);
-    },
-    staleTime: 60_000,
-  });
-  const withCover = useMemo(() => new Set(coversQuery.data ?? []), [coversQuery.data]);
+  const loadPlan = useServerFn(getPlanForDate);
 
   const cycleIndex = CYCLES.findIndex((c) => c.key === cycle);
 
+  /** Plano gravado no banco: a atribuição de cada artigo à data não muda. */
+  const planQuery = useQuery({
+    queryKey: ["scheduler_plan", dateISO],
+    queryFn: () => loadPlan({ data: { date: dateISO } }),
+    staleTime: 30_000,
+  });
+
   const items = useMemo(() => {
-    if (!coversQuery.data) return [];
-    return planForDate({
-      blogs,
-      categories,
-      posts,
-      dateISO,
-      todayISO,
-      withCover,
-      cycle: cycleIndex < 0 ? 0 : cycleIndex,
-      cyclesPerDay: CYCLES.length,
-      includeAllStatuses: true,
-    });
-  }, [coversQuery.data, withCover, blogs, categories, posts, dateISO, todayISO, cycleIndex]);
+    const idx = cycleIndex < 0 ? 0 : cycleIndex;
+    return (planQuery.data?.rows ?? [])
+      .filter((r) => r.cycle === idx)
+      .map((r) => ({
+        postId: r.post_id,
+        postTitle: r.post_title,
+        blogId: r.blog_id,
+        blogName: r.blog_name,
+        categoryId: r.category_id ?? undefined,
+        position: r.position,
+      }));
+  }, [planQuery.data, cycleIndex]);
+
 
   const postById = useMemo(() => new Map(posts.map((p) => [p.id, p])), [posts]);
   const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
