@@ -211,3 +211,30 @@ create policy "public access scheduler_locks" on public.scheduler_locks
 --     headers := '{"Content-Type":"application/json"}'::jsonb
 --   );
 -- $$);
+
+-- ============================================================
+-- Plano persistido do calendário (Agendador)
+-- ============================================================
+create table if not exists public.scheduler_plan (
+  id text primary key,
+  run_date date not null,
+  cycle integer not null default 0,
+  position integer not null default 0,
+  blog_id text not null,
+  blog_name text not null default '',
+  post_id text not null references public.posts(id) on delete cascade,
+  post_title text not null default '',
+  category_id text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists scheduler_plan_post_idx on public.scheduler_plan (post_id);
+create index if not exists scheduler_plan_date_idx on public.scheduler_plan (run_date, cycle, position);
+
+grant select, insert, update, delete on public.scheduler_plan to anon, authenticated;
+grant all on public.scheduler_plan to service_role;
+
+alter table public.scheduler_plan enable row level security;
+
+create policy "public access scheduler_plan" on public.scheduler_plan
+  for all using (true) with check (true);

@@ -30,3 +30,11 @@ export const ensureSchedulerRuns = createServerFn({ method: "POST" })
     const { ensureRuns } = await import("./scheduler.server");
     return { runs: await ensureRuns(data.date) };
   });
+
+/** Plano persistido do calendário (gera até a data pedida, se necessário). */
+export const getPlanForDate = createServerFn({ method: "POST" })
+  .inputValidator((input: { date: string }) => ({ date: String(input?.date ?? "").slice(0, 10) }))
+  .handler(async ({ data }) => {
+    const { ensurePlan } = await import("./plan.server");
+    return { rows: await ensurePlan(data.date) };
+  });
