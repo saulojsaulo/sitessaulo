@@ -31,18 +31,49 @@ const DONE_STATUS = new Set(["publicado", "agendado"]);
 /** Limite de dias que podem ser gerados de uma vez. */
 const MAX_DAYS = 180;
 
+/** Lê todas as páginas de uma consulta (PostgREST devolve no máx. 1000 linhas). */
+async function fetchAll<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>,
+): Promise<T[]> {
+  const size = 1000;
+  const out: T[] = [];
+  for (let page = 0; page < 50; page += 1) {
+    const { data, error } = await build(page * size, page * size + size - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < size) break;
+  }
+  return out;
+}
+
 async function loadData() {
-  const [blogsRes, catsRes, postsRes, coverRes] = await Promise.all([
+  const [blogsRes, catsRes, postRows, coverRows] = await Promise.all([
     supabase.from("blogs").select("*").order("name"),
     supabase.from("categories").select("*").order("name"),
-    supabase
-      .from("posts")
-      .select("id,blog_id,category_id,title,status,created_at")
-      .order("created_at"),
-    supabase.from("posts").select("id").not("cover", "is", null).neq("cover", ""),
+    fetchAll<Partial<PostRow>>((from, to) =>
+      supabase
+        .from("posts")
+        .select("id,blog_id,category_id,title,status,created_at")
+        .order("created_at")
+        .range(from, to),
+    ),
+    fetchAll<{ id: string }>((from, to) =>
+      supabase
+        .from("posts")
+        .select("id")
+        .not("cover", "is", null)
+        .neq("cover", "")
+        .order("id")
+        .range(from, to),
+    ),
   ]);
-  const err = blogsRes.error ?? catsRes.error ?? postsRes.error ?? coverRes.error;
+  const postsRes = { data: postRows };
+  const coverRes = { data: coverRows };
+  const err = blogsRes.error ?? catsRes.error;
   if (err) throw new Error(err.message);
+
+
 
   const blogs: Blog[] = ((blogsRes.data ?? []) as BlogRow[]).map((r) => ({
     id: r.id,
@@ -85,15 +116,14 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   const { blogs, categories, posts, withCover } = await loadData();
   const postById = new Map(posts.map((p) => [p.id, p]));
 
+  // Todo o plano já gravado (qualquer data) — usado para nunca repetir artigo.
+  const all = await fetchAll<PlanRow>((from, to) =>
+    supabase.from("scheduler_plan").select("*").order("run_date").range(from, to),
+  );
+  const future = all.filter((r) => r.run_date >= todayISO);
+
   // Remove de datas futuras os artigos que já foram publicados/agendados
   // ou que perderam a imagem de capa.
-  const { data: futureRaw, error: futureErr } = await supabase
-    .from("scheduler_plan")
-    .select("*")
-    .gte("run_date", todayISO);
-  if (futureErr) throw new Error(futureErr.message);
-  const future = (futureRaw ?? []) as PlanRow[];
-
   const stale = future.filter((r) => {
     const p = postById.get(r.post_id);
     return !p || DONE_STATUS.has(p.status) || !withCover.has(p.id);
@@ -105,6 +135,9 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   }
   const staleIds = new Set(stale.map((r) => r.id));
   const kept = future.filter((r) => !staleIds.has(r.id));
+  /** Artigos já usados em qualquer data (inclui histórico passado). */
+  const usedEver = new Set(all.filter((r) => !staleIds.has(r.id)).map((r) => r.post_id));
+
 
   // Datas que precisam ser geradas (de hoje até a data pedida).
   const daysNeeded = Math.min(
@@ -113,7 +146,7 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   );
   const dates = nextBusinessDays(todayISO, Math.max(1, daysNeeded));
 
-  const assigned = new Set(kept.map((r) => r.post_id));
+  const assigned = usedEver;
   const byDate = new Map<string, PlanRow[]>();
   for (const r of kept) {
     const bucket = byDate.get(r.run_date);
@@ -136,9 +169,12 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   for (const day of dates) {
     const existing = byDate.get(day) ?? [];
     for (let cycle = 0; cycle < CYCLES.length; cycle += 1) {
-      if (existing.some((r) => r.cycle === cycle)) continue;
-      let position = 0;
+      const rowsInCycle = existing.filter((r) => r.cycle === cycle);
+      const blogsDone = new Set(rowsInCycle.map((r) => r.blog_id));
+      if (blogsDone.size >= ordered.length) continue;
+      let position = rowsInCycle.length;
       for (const blog of ordered) {
+        if (blogsDone.has(blog.id)) continue;
         const queue = queues.get(blog.id) ?? [];
         const post = queue.find((p) => !assigned.has(p.id));
         if (!post) continue;
@@ -159,10 +195,15 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
     }
   }
 
+
   if (inserts.length > 0) {
-    const { error } = await supabase.from("scheduler_plan").insert(inserts);
+    // ignoreDuplicates: se outra aba gerou o mesmo artigo em paralelo, não falha.
+    const { error } = await supabase
+      .from("scheduler_plan")
+      .upsert(inserts, { onConflict: "post_id", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
   }
+
 
   return listPlan(dateISO);
 }
