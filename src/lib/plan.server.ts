@@ -146,7 +146,7 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   );
   const dates = nextBusinessDays(todayISO, Math.max(1, daysNeeded));
 
-  const assigned = new Set(kept.map((r) => r.post_id));
+  const assigned = usedEver;
   const byDate = new Map<string, PlanRow[]>();
   for (const r of kept) {
     const bucket = byDate.get(r.run_date);
