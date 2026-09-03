@@ -31,18 +31,49 @@ const DONE_STATUS = new Set(["publicado", "agendado"]);
 /** Limite de dias que podem ser gerados de uma vez. */
 const MAX_DAYS = 180;
 
+/** Lê todas as páginas de uma consulta (PostgREST devolve no máx. 1000 linhas). */
+async function fetchAll<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>,
+): Promise<T[]> {
+  const size = 1000;
+  const out: T[] = [];
+  for (let page = 0; page < 50; page += 1) {
+    const { data, error } = await build(page * size, page * size + size - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < size) break;
+  }
+  return out;
+}
+
 async function loadData() {
-  const [blogsRes, catsRes, postsRes, coverRes] = await Promise.all([
+  const [blogsRes, catsRes, postRows, coverRows] = await Promise.all([
     supabase.from("blogs").select("*").order("name"),
     supabase.from("categories").select("*").order("name"),
-    supabase
-      .from("posts")
-      .select("id,blog_id,category_id,title,status,created_at")
-      .order("created_at"),
-    supabase.from("posts").select("id").not("cover", "is", null).neq("cover", ""),
+    fetchAll<Partial<PostRow>>((from, to) =>
+      supabase
+        .from("posts")
+        .select("id,blog_id,category_id,title,status,created_at")
+        .order("created_at")
+        .range(from, to),
+    ),
+    fetchAll<{ id: string }>((from, to) =>
+      supabase
+        .from("posts")
+        .select("id")
+        .not("cover", "is", null)
+        .neq("cover", "")
+        .order("id")
+        .range(from, to),
+    ),
   ]);
-  const err = blogsRes.error ?? catsRes.error ?? postsRes.error ?? coverRes.error;
+  const postsRes = { data: postRows };
+  const coverRes = { data: coverRows };
+  const err = blogsRes.error ?? catsRes.error;
   if (err) throw new Error(err.message);
+
+
 
   const blogs: Blog[] = ((blogsRes.data ?? []) as BlogRow[]).map((r) => ({
     id: r.id,
