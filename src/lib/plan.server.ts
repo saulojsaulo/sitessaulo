@@ -116,15 +116,14 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   const { blogs, categories, posts, withCover } = await loadData();
   const postById = new Map(posts.map((p) => [p.id, p]));
 
+  // Todo o plano já gravado (qualquer data) — usado para nunca repetir artigo.
+  const all = await fetchAll<PlanRow>((from, to) =>
+    supabase.from("scheduler_plan").select("*").order("run_date").range(from, to),
+  );
+  const future = all.filter((r) => r.run_date >= todayISO);
+
   // Remove de datas futuras os artigos que já foram publicados/agendados
   // ou que perderam a imagem de capa.
-  const { data: futureRaw, error: futureErr } = await supabase
-    .from("scheduler_plan")
-    .select("*")
-    .gte("run_date", todayISO);
-  if (futureErr) throw new Error(futureErr.message);
-  const future = (futureRaw ?? []) as PlanRow[];
-
   const stale = future.filter((r) => {
     const p = postById.get(r.post_id);
     return !p || DONE_STATUS.has(p.status) || !withCover.has(p.id);
@@ -136,6 +135,9 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   }
   const staleIds = new Set(stale.map((r) => r.id));
   const kept = future.filter((r) => !staleIds.has(r.id));
+  /** Artigos já usados em qualquer data (inclui histórico passado). */
+  const usedEver = new Set(all.filter((r) => !staleIds.has(r.id)).map((r) => r.post_id));
+
 
   // Datas que precisam ser geradas (de hoje até a data pedida).
   const daysNeeded = Math.min(
