@@ -169,9 +169,12 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   for (const day of dates) {
     const existing = byDate.get(day) ?? [];
     for (let cycle = 0; cycle < CYCLES.length; cycle += 1) {
-      if (existing.some((r) => r.cycle === cycle)) continue;
-      let position = 0;
+      const rowsInCycle = existing.filter((r) => r.cycle === cycle);
+      const blogsDone = new Set(rowsInCycle.map((r) => r.blog_id));
+      if (blogsDone.size >= ordered.length) continue;
+      let position = rowsInCycle.length;
       for (const blog of ordered) {
+        if (blogsDone.has(blog.id)) continue;
         const queue = queues.get(blog.id) ?? [];
         const post = queue.find((p) => !assigned.has(p.id));
         if (!post) continue;
@@ -191,6 +194,7 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
       }
     }
   }
+
 
   if (inserts.length > 0) {
     // ignoreDuplicates: se outra aba gerou o mesmo artigo em paralelo, não falha.
