@@ -193,9 +193,13 @@ export async function ensurePlan(dateISO: string): Promise<PlanRow[]> {
   }
 
   if (inserts.length > 0) {
-    const { error } = await supabase.from("scheduler_plan").insert(inserts);
+    // ignoreDuplicates: se outra aba gerou o mesmo artigo em paralelo, não falha.
+    const { error } = await supabase
+      .from("scheduler_plan")
+      .upsert(inserts, { onConflict: "post_id", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
   }
+
 
   return listPlan(dateISO);
 }
