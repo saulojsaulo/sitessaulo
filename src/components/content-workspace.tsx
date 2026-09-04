@@ -510,7 +510,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
           <QuickPublish
             postId={postId}
             title={title}
-            article={article}
+            article={ws.published}
             cover={cover}
             tags={tags}
             {...(onStatusChange ? { onStatusChange } : {})}
