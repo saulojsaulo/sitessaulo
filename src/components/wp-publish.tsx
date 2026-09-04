@@ -281,7 +281,9 @@ export function WpPublishPanel({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.length, blogName]);
-  const article = parseWorkspace(content).article.trim();
+  // O que vai para o WordPress é o "Artigo Publicação" (revisado pelo ChatGPT).
+  const ws = parseWorkspace(content);
+  const article = (ws.published.trim() || ws.article).trim();
 
   const toggle = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));

@@ -17,12 +17,20 @@ export interface Workspace {
   article: string;
   /** true quando o artigo foi editado manualmente e não deve ser recalculado. */
   manual: boolean;
+  /** Artigo revisado/formatado em HTML pela IA — é o que vai para o WordPress. */
+  published: string;
 }
 
 const MARKER_START = "<!--PF_WS:";
 const MARKER_END = "-->";
 
-export const emptyWorkspace: Workspace = { raw: "", sections: [], article: "", manual: false };
+export const emptyWorkspace: Workspace = {
+  raw: "",
+  sections: [],
+  article: "",
+  manual: false,
+  published: "",
+};
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -69,6 +77,7 @@ export function parseWorkspace(content: string): Workspace {
         : [],
       article,
       manual: Boolean(parsed.manual),
+      published: typeof parsed.published === "string" ? parsed.published : "",
     };
   } catch {
     return { ...emptyWorkspace, article, manual: article.trim() !== "" };
@@ -77,9 +86,15 @@ export function parseWorkspace(content: string): Workspace {
 
 export function serializeWorkspace(ws: Workspace): string {
   const meta = encodeURIComponent(
-    JSON.stringify({ raw: ws.raw, sections: ws.sections, manual: ws.manual }),
+    JSON.stringify({
+      raw: ws.raw,
+      sections: ws.sections,
+      manual: ws.manual,
+      published: ws.published,
+    }),
   );
-  const hasState = ws.raw.trim() !== "" || ws.sections.length > 0 || ws.manual;
+  const hasState =
+    ws.raw.trim() !== "" || ws.sections.length > 0 || ws.manual || ws.published.trim() !== "";
   if (!hasState) return ws.article;
   return `${ws.article}\n${MARKER_START}${meta}${MARKER_END}`;
 }
