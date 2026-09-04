@@ -3,7 +3,7 @@
 import { estimateTokens, logAiUsage } from "./ai-usage.server";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-export const AI_MODEL = "gpt-4.1";
+export const AI_MODEL = "gpt-5.6-luna";
 
 export interface AiMeta {
   kind?: string;
