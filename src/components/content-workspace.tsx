@@ -39,7 +39,7 @@ import {
   buildReviewPrompt,
   buildSectionPrompt,
   countWords,
-  
+  parseReviewOutput,
   summarizeOutline,
 } from "@/lib/prompts";
 
@@ -233,23 +233,33 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
     }
   };
 
-  /** Copia o prompt de revisão editorial para enviar a uma IA externa. */
+  /** Envia o artigo ao ChatGPT e grava o resultado formatado em "Artigo Publicação". */
   const reviewContent = async () => {
-    const current = wsRef.current.manual
-      ? wsRef.current.article
-      : buildArticle(wsRef.current.sections);
+    const current = cleanHeadings(
+      wsRef.current.manual ? wsRef.current.article : buildArticle(wsRef.current.sections),
+    );
     if (!current.trim()) return;
     setEditorial(true);
     try {
-      const prompt = `${REVIEW_SYSTEM_PROMPT}\n\n---\n\n${buildReviewPrompt(current)}`;
-      await copy(prompt, "Prompt de revisão copiado! Cole na IA externa.");
+      const text = await askGemini(buildReviewPrompt(current), {
+        kind: "revisao",
+        postId,
+        postTitle: title,
+        system: REVIEW_SYSTEM_PROMPT,
+      });
+      if (!text) throw new Error("A IA não retornou conteúdo");
+      const parsed = parseReviewOutput(text);
+      const html = parsed.article.trim() || text.trim();
+      commit({ ...wsRef.current, published: html });
+      setMeta(parsed.meta);
+      setTab("publicacao");
+      toast.success(`Artigo de publicação gerado — ${countWords(html)} palavras`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao revisar o conteúdo");
     } finally {
       setEditorial(false);
     }
   };
-
-
-
 
   const generateAll = async () => {
     const list = wsRef.current.sections;
@@ -285,7 +295,8 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
               </span>
             ) : null}
           </TabsTrigger>
-          <TabsTrigger value="artigo">Artigo Pronto</TabsTrigger>
+          <TabsTrigger value="artigo">Artigo Prompt</TabsTrigger>
+          <TabsTrigger value="publicacao">Artigo Publicação</TabsTrigger>
         </TabsList>
         <Button
           type="button"
@@ -430,6 +441,52 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
             title="Limpar artigo montado?"
             description="O texto final será apagado. As sessões da aba 2 continuam salvas."
             onConfirm={() => commit({ ...ws, article: "", manual: true })}
+          />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="publicacao" className="mt-3 space-y-3">
+        <Textarea
+          value={ws.published}
+          onChange={(e) => commit({ ...ws, published: e.target.value })}
+          placeholder='Clique em "Revisar Conteúdo" na aba Artigo Prompt para gerar o artigo formatado aqui.'
+          className="min-h-96 font-mono text-xs"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-auto text-xs text-muted-foreground">
+            {countWords(ws.published)} palavras · este é o conteúdo enviado ao WordPress
+          </span>
+          <Button
+            type="button"
+            className="gap-2"
+            disabled={!article.trim() || editorial}
+            onClick={() => void reviewContent()}
+          >
+            {editorial ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="size-4" />
+            )}
+            Revisar Conteúdo
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="gap-2"
+            disabled={!ws.published.trim()}
+            onClick={() => void copy(ws.published, "Artigo de publicação copiado!")}
+          >
+            <Copy className="size-4" /> Copiar
+          </Button>
+          <ConfirmDelete
+            trigger={
+              <Button type="button" variant="ghost" className="gap-2 text-destructive">
+                <Trash2 className="size-4" /> Excluir
+              </Button>
+            }
+            title="Limpar artigo de publicação?"
+            description="O texto formatado será apagado. As demais abas continuam salvas."
+            onConfirm={() => commit({ ...ws, published: "" })}
           />
         </div>
         {meta ? (
