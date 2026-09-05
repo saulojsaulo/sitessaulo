@@ -30,6 +30,7 @@ type WpStatus = "draft" | "publish" | "future";
 interface Target {
   categoryIds: number[];
   slug: string;
+  slugTouched?: boolean;
   metaDescription: string;
   authorId: string;
   status: WpStatus;
@@ -168,7 +169,7 @@ function TargetCard({
             <Label className="text-xs">Slug</Label>
             <Input
               value={target.slug}
-              onChange={(e) => onChange({ ...target, slug: e.target.value })}
+              onChange={(e) => onChange({ ...target, slug: e.target.value, slugTouched: true })}
               placeholder={slugify(title)}
               className="h-8 text-xs"
             />
@@ -281,6 +282,22 @@ export function WpPublishPanel({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.length, blogName]);
+  // Enquanto o slug não for editado à mão, ele acompanha o título.
+  useEffect(() => {
+    const auto = slugify(title);
+    setTargets((t) => {
+      let changed = false;
+      const next: Record<string, Target> = {};
+      for (const [id, tg] of Object.entries(t)) {
+        if (!tg.slugTouched && tg.slug !== auto) {
+          next[id] = { ...tg, slug: auto };
+          changed = true;
+        } else next[id] = tg;
+      }
+      return changed ? next : t;
+    });
+  }, [title]);
+
   // O que vai para o WordPress é o "Artigo Publicação" (revisado pelo ChatGPT).
   const ws = parseWorkspace(content);
   const article = (ws.published.trim() || ws.article).trim();
