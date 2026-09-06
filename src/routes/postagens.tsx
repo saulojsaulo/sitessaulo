@@ -446,6 +446,20 @@ function PostsPage() {
     }
   };
 
+  const toggleSelected = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected([]);
+  };
+
+  const deleteSelected = () => {
+    const n = selected.length;
+    selected.forEach((id) => removePost(id));
+    exitSelectMode();
+    toast.success(n === 1 ? "1 postagem excluída" : `${n} postagens excluídas`);
+  };
 
   return (
     <>
@@ -460,9 +474,49 @@ function PostsPage() {
             <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
               <Upload className="size-4" /> Upload de novas postagens
             </Button>
+            {selectMode ? (
+              <Button variant="outline" onClick={exitSelectMode} className="gap-2">
+                <X className="size-4" /> Cancelar seleção
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setSelectMode(true)} className="gap-2">
+                <CheckSquare className="size-4" /> Ações em massa
+              </Button>
+            )}
           </div>
         }
       />
+
+      {selectMode && (
+        <div className="surface mb-4 flex flex-wrap items-center justify-between gap-3 p-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                checked={filtered.length > 0 && selected.length === filtered.length}
+                onCheckedChange={(v) =>
+                  setSelected(v ? filtered.map((p) => p.id) : [])
+                }
+                aria-label="Selecionar todas as postagens visíveis"
+              />
+              Selecionar todas as visíveis
+            </label>
+            <span className="text-sm text-muted-foreground">
+              {selected.length} selecionada{selected.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <ConfirmDelete
+            title={`Excluir ${selected.length} postagem(ns)?`}
+            description="Esta ação não pode ser desfeita."
+            onConfirm={deleteSelected}
+            trigger={
+              <Button variant="destructive" disabled={selected.length === 0} className="gap-2">
+                <Trash2 className="size-4" /> Excluir selecionadas
+              </Button>
+            }
+          />
+        </div>
+      )}
+
 
       <div className="surface mb-6 grid gap-3 p-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="relative md:col-span-3 lg:col-span-1">
