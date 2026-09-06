@@ -21,9 +21,9 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 
-/** Preço aproximado do google/gemini-3.7-flash (USD por 1M de tokens). Estimativa. */
-const PRICE_IN = 0.3;
-const PRICE_OUT = 2.5;
+/** Preço aproximado do modelo do ChatGPT (USD por 1M de tokens). Estimativa. */
+const PRICE_IN = 1.25;
+const PRICE_OUT = 10;
 
 interface UsageRow {
   id: string;
@@ -38,6 +38,8 @@ interface UsageRow {
   duration_ms: number;
   ok: boolean;
   error: string | null;
+  cached_tokens: number | null;
+  reasoning_tokens: number | null;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -68,7 +70,7 @@ export function AiUsagePanel() {
       let q = supabase
         .from("ai_usage")
         .select(
-          "id, created_at, kind, post_title, model, prompt_tokens, completion_tokens, total_tokens, estimated, duration_ms, ok, error",
+          "id, created_at, kind, post_title, model, prompt_tokens, completion_tokens, total_tokens, estimated, duration_ms, ok, error, cached_tokens, reasoning_tokens",
         )
         .gte("created_at", since)
         .order("created_at", { ascending: false })
@@ -89,11 +91,15 @@ export function AiUsagePanel() {
     let outTok = 0;
     let fails = 0;
     let ms = 0;
+    let cached = 0;
+    let reasoning = 0;
     for (const r of rows) {
       if (new Date(r.created_at).toDateString() === todayKey) today += 1;
       inTok += r.prompt_tokens;
       outTok += r.completion_tokens;
       ms += r.duration_ms;
+      cached += r.cached_tokens ?? 0;
+      reasoning += r.reasoning_tokens ?? 0;
       if (!r.ok) fails += 1;
     }
     const cost = (inTok / 1_000_000) * PRICE_IN + (outTok / 1_000_000) * PRICE_OUT;
@@ -104,6 +110,8 @@ export function AiUsagePanel() {
       outTok,
       fails,
       cost,
+      cached,
+      reasoning,
       avgMs: rows.length ? Math.round(ms / rows.length) : 0,
     };
   }, [rows]);
@@ -136,7 +144,7 @@ export function AiUsagePanel() {
           <div>
             <h2 className="text-sm font-semibold">Uso de IA</h2>
             <p className="text-xs text-muted-foreground">
-              Gerações feitas com o Gemini · custo estimado
+              Gerações feitas com o ChatGPT · consumo informado pela API
             </p>
           </div>
         </div>
@@ -207,7 +215,7 @@ export function AiUsagePanel() {
               icon={<Coins className="size-4" />}
               label="Custo estimado"
               value={fmtUsd(stats.cost)}
-              hint="valores oficiais no painel de créditos"
+              hint={`cache ${fmtInt(stats.cached)} · raciocínio ${fmtInt(stats.reasoning)} tokens`}
             />
           </div>
 
@@ -252,6 +260,10 @@ export function AiUsagePanel() {
                     <td className="whitespace-nowrap p-2 text-right">
                       {fmtInt(r.total_tokens)}
                       {r.estimated ? <span className="text-muted-foreground"> ~</span> : null}
+                      <span className="block text-[10px] text-muted-foreground">
+                        {fmtInt(r.prompt_tokens)} in · {fmtInt(r.completion_tokens)} out
+                        {r.cached_tokens ? ` · ${fmtInt(r.cached_tokens)} cache` : ""}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap p-2 text-right">
                       {(r.duration_ms / 1000).toFixed(1)}s
@@ -284,7 +296,7 @@ export function AiUsagePanel() {
           </div>
           <p className="text-xs text-muted-foreground">
             Tokens marcados com <strong>~</strong> são estimados. O custo é uma aproximação a partir
-            do preço do modelo {rows[0]?.model ?? "google/gemini-3.7-flash"}.
+            do preço do modelo {rows[0]?.model ?? "openai/gpt-5.6-luna"}.
           </p>
         </>
       )}
