@@ -171,7 +171,10 @@ function PostsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const wsApi = useRef<WorkspaceApi | null>(null);
+
 
 
   const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
