@@ -637,14 +637,29 @@ function PostsPage() {
           {filtered.map((p) => (
             <article
               key={p.id}
-              onClick={() => startEdit(p)}
-              className="surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr]"
+              onClick={() => (selectMode ? toggleSelected(p.id) : startEdit(p))}
+              className={`surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr] ${
+                selectMode && selected.includes(p.id) ? "ring-2 ring-primary" : ""
+              }`}
             >
               <div className="relative h-full min-h-[96px] sm:min-h-[120px]">
                 <PostCover id={p.id} title={p.title} cover={p.cover} />
+                {selectMode && (
+                  <span
+                    className="absolute top-2 left-2 rounded bg-background/90 p-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selected.includes(p.id)}
+                      onCheckedChange={() => toggleSelected(p.id)}
+                      aria-label={`Selecionar ${p.title}`}
+                    />
+                  </span>
+                )}
               </div>
 
               <div className="flex min-w-0 items-center justify-between gap-3 p-3">
+
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="truncate font-semibold">{p.title}</h2>
