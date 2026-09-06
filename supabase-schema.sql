@@ -148,6 +148,9 @@ create table if not exists public.ai_usage (
   error text
 );
 
+alter table public.ai_usage add column if not exists cached_tokens integer not null default 0;
+alter table public.ai_usage add column if not exists reasoning_tokens integer not null default 0;
+
 create index if not exists ai_usage_created_idx on public.ai_usage (created_at desc);
 
 grant select, insert, update, delete on public.ai_usage to anon, authenticated;
