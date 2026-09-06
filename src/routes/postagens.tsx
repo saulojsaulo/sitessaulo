@@ -12,10 +12,15 @@ import {
   Sparkles,
   Loader2,
   Upload,
+  CheckSquare,
+  X,
 } from "lucide-react";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -166,7 +171,10 @@ function PostsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const wsApi = useRef<WorkspaceApi | null>(null);
+
 
 
   const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
@@ -438,6 +446,20 @@ function PostsPage() {
     }
   };
 
+  const toggleSelected = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected([]);
+  };
+
+  const deleteSelected = () => {
+    const n = selected.length;
+    selected.forEach((id) => removePost(id));
+    exitSelectMode();
+    toast.success(n === 1 ? "1 postagem excluída" : `${n} postagens excluídas`);
+  };
 
   return (
     <>
@@ -452,9 +474,49 @@ function PostsPage() {
             <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
               <Upload className="size-4" /> Upload de novas postagens
             </Button>
+            {selectMode ? (
+              <Button variant="outline" onClick={exitSelectMode} className="gap-2">
+                <X className="size-4" /> Cancelar seleção
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setSelectMode(true)} className="gap-2">
+                <CheckSquare className="size-4" /> Ações em massa
+              </Button>
+            )}
           </div>
         }
       />
+
+      {selectMode && (
+        <div className="surface mb-4 flex flex-wrap items-center justify-between gap-3 p-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                checked={filtered.length > 0 && selected.length === filtered.length}
+                onCheckedChange={(v) =>
+                  setSelected(v ? filtered.map((p) => p.id) : [])
+                }
+                aria-label="Selecionar todas as postagens visíveis"
+              />
+              Selecionar todas as visíveis
+            </label>
+            <span className="text-sm text-muted-foreground">
+              {selected.length} selecionada{selected.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <ConfirmDelete
+            title={`Excluir ${selected.length} postagem(ns)?`}
+            description="Esta ação não pode ser desfeita."
+            onConfirm={deleteSelected}
+            trigger={
+              <Button variant="destructive" disabled={selected.length === 0} className="gap-2">
+                <Trash2 className="size-4" /> Excluir selecionadas
+              </Button>
+            }
+          />
+        </div>
+      )}
+
 
       <div className="surface mb-6 grid gap-3 p-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="relative md:col-span-3 lg:col-span-1">
@@ -575,14 +637,29 @@ function PostsPage() {
           {filtered.map((p) => (
             <article
               key={p.id}
-              onClick={() => startEdit(p)}
-              className="surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr]"
+              onClick={() => (selectMode ? toggleSelected(p.id) : startEdit(p))}
+              className={`surface group grid cursor-pointer grid-cols-[100px_1fr] overflow-hidden rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift sm:grid-cols-[140px_1fr] ${
+                selectMode && selected.includes(p.id) ? "ring-2 ring-primary" : ""
+              }`}
             >
               <div className="relative h-full min-h-[96px] sm:min-h-[120px]">
                 <PostCover id={p.id} title={p.title} cover={p.cover} />
+                {selectMode && (
+                  <span
+                    className="absolute top-2 left-2 rounded bg-background/90 p-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selected.includes(p.id)}
+                      onCheckedChange={() => toggleSelected(p.id)}
+                      aria-label={`Selecionar ${p.title}`}
+                    />
+                  </span>
+                )}
               </div>
 
               <div className="flex min-w-0 items-center justify-between gap-3 p-3">
+
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="truncate font-semibold">{p.title}</h2>
