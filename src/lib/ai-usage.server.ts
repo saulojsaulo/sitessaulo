@@ -12,13 +12,20 @@ export interface AiUsageRecord {
   duration_ms: number;
   ok: boolean;
   error: string | null;
+  /** Colunas opcionais (podem não existir ainda no banco). */
+  cached_tokens?: number;
+  reasoning_tokens?: number;
 }
 
 /** Registro best-effort: nunca deixa a geração falhar por causa do log. */
 export async function logAiUsage(rec: AiUsageRecord): Promise<void> {
   try {
     const { error } = await supabase.from("ai_usage").insert(rec);
-    if (error) console.warn("[ai_usage] falha ao registrar:", error.message);
+    if (!error) return;
+    // Banco sem as colunas novas: grava o essencial.
+    const { cached_tokens: _c, reasoning_tokens: _r, ...basic } = rec;
+    const retry = await supabase.from("ai_usage").insert(basic);
+    if (retry.error) console.warn("[ai_usage] falha ao registrar:", retry.error.message);
   } catch (e) {
     console.warn("[ai_usage] falha ao registrar:", e instanceof Error ? e.message : e);
   }
