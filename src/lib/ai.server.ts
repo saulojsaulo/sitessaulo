@@ -81,8 +81,14 @@ async function generateWithOpenAI(
   const decoder = new TextDecoder();
   let buffer = "";
   let text = "";
-  let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null =
-    null;
+  type Usage = {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number } | null;
+    completion_tokens_details?: { reasoning_tokens?: number } | null;
+  };
+  let usage: Usage | null = null;
 
   for (;;) {
     const { done, value } = await reader.read();
@@ -100,11 +106,7 @@ async function generateWithOpenAI(
         const json = JSON.parse(payload) as {
           choices?: { delta?: { content?: string } }[];
           error?: { message?: string } | null;
-          usage?: {
-            prompt_tokens?: number;
-            completion_tokens?: number;
-            total_tokens?: number;
-          } | null;
+          usage?: Usage | null;
         };
         if (json.error) return fail(`ChatGPT: ${json.error.message ?? "erro desconhecido"}`);
         const delta = json.choices?.[0]?.delta?.content;
@@ -130,6 +132,8 @@ async function generateWithOpenAI(
     duration_ms: Date.now() - started,
     ok: true,
     error: null,
+    cached_tokens: usage?.prompt_tokens_details?.cached_tokens ?? 0,
+    reasoning_tokens: usage?.completion_tokens_details?.reasoning_tokens ?? 0,
   });
 
   return out;
