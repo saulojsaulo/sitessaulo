@@ -67,19 +67,24 @@ export function AiUsagePanel() {
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["ai-usage", days, kind],
     queryFn: async (): Promise<UsageRow[]> => {
-      let q = supabase
-        .from("ai_usage")
-        .select(
-          "id, created_at, kind, post_title, model, prompt_tokens, completion_tokens, total_tokens, estimated, duration_ms, ok, error, cached_tokens, reasoning_tokens",
-        )
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (kind !== "all") q = q.eq("kind", kind);
-      const { data, error } = await q;
+      const BASE =
+        "id, created_at, kind, post_title, model, prompt_tokens, completion_tokens, total_tokens, estimated, duration_ms, ok, error";
+      const run = async (cols: string) => {
+        let q = supabase
+          .from("ai_usage")
+          .select(cols)
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (kind !== "all") q = q.eq("kind", kind);
+        return q;
+      };
+      let { data, error } = await run(`${BASE}, cached_tokens, reasoning_tokens`);
+      if (error) ({ data, error } = await run(BASE));
       if (error) throw new Error(error.message);
-      return (data ?? []) as UsageRow[];
+      return (data ?? []) as unknown as UsageRow[];
     },
+
   });
 
   const rows = data ?? [];
