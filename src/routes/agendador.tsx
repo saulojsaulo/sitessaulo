@@ -124,8 +124,11 @@ function SchedulerPage() {
   const [cycle, setCycle] = useState<CycleKey>("manha");
   const dateISO = toISODate(date);
   const [busy, setBusy] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Record<string, Progress>>({});
+  const [statusById, setStatusById] = useState<Record<string, PostStatus>>({});
   const runPost = useServerFn(runPostPipeline);
   const loadPlan = useServerFn(getPlanForDate);
+  const loadProgress = useServerFn(getPostsProgress);
 
   const cycleIndex = CYCLES.findIndex((c) => c.key === cycle);
 
@@ -150,6 +153,40 @@ function SchedulerPage() {
       }));
   }, [planQuery.data, cycleIndex]);
 
+  const postIds = useMemo(() => items.map((i) => i.postId), [items]);
+
+  const refreshProgress = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) return;
+      try {
+        const res = await loadProgress({ data: { postIds: ids } });
+        setProgress((prev) => {
+          const next = { ...prev };
+          for (const row of res.rows) next[row.postId] = row;
+          return next;
+        });
+        setStatusById((prev) => {
+          const next = { ...prev };
+          for (const row of res.rows) next[row.postId] = row.status;
+          return next;
+        });
+      } catch {
+        /* a linha do tempo volta a atualizar na próxima tentativa */
+      }
+    },
+    [loadProgress],
+  );
+
+  /** Linha do tempo ao abrir a data (e sempre que o plano muda). */
+  useQuery({
+    queryKey: ["scheduler_progress", dateISO, cycleIndex, postIds.join(",")],
+    queryFn: async () => {
+      await refreshProgress(postIds);
+      return true;
+    },
+    enabled: postIds.length > 0,
+    staleTime: 10_000,
+  });
 
   const postById = useMemo(() => new Map(posts.map((p) => [p.id, p])), [posts]);
   const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
@@ -158,14 +195,27 @@ function SchedulerPage() {
     void navigate({ to: "/postagens", search: { post: postId } });
   };
 
+  /**
+   * Roteiro completo: estrutura → estruturas individuais → sessões com IA →
+   * artigo prompt → revisão → artigo publicação. Cada chamada avança o que
+   * cabe no tempo do servidor; aqui repetimos até concluir, atualizando a
+   * linha do tempo em tempo real.
+   */
   const processItem = async (postId: string, title: string) => {
     setBusy(postId);
     try {
-      const res = await runPost({ data: { postId } });
-      if (res.done) toast.success(`"${title}" chegou em Artigo Aguardando Revisão`);
-      else toast.info(`"${title}": ${res.steps} etapa(s) concluída(s).`);
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const res = await runPost({ data: { postId } });
+        await refreshProgress([postId]);
+        if (res.done) {
+          toast.success(`"${title}" concluído — Artigo Completo pronto para publicação`);
+          return;
+        }
+      }
+      toast.info(`"${title}": ainda em andamento, clique em Processar novamente.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao processar o artigo");
+      await refreshProgress([postId]);
     } finally {
       setBusy(null);
     }
