@@ -246,6 +246,7 @@ export function WpPublishPanel({
   tags,
   blogName,
   categoryName,
+  onPublished,
 }: {
   postId: string | null;
   title: string;
@@ -254,6 +255,8 @@ export function WpPublishPanel({
   tags: string[];
   blogName?: string | undefined;
   categoryName?: string | undefined;
+  /** Avisa quando o envio deu certo, com o status escolhido no WordPress. */
+  onPublished?: ((info: { wpStatus: WpStatus; date?: string | undefined }) => void) | undefined;
 }) {
   const connections = useWpConnections();
   const publications = useWpPublications();
@@ -368,8 +371,13 @@ export function WpPublishPanel({
           error: res.ok ? null : (res.error ?? "Erro desconhecido"),
         });
 
-        if (res.ok) toast.success(`${conn.name}: enviado com sucesso`);
-        else toast.error(`${conn.name}: ${res.error}`);
+        if (res.ok) {
+          toast.success(`${conn.name}: enviado com sucesso`);
+          onPublished?.({
+            wpStatus: target.status,
+            date: target.status === "future" ? target.date : undefined,
+          });
+        } else toast.error(`${conn.name}: ${res.error}`);
       }
     } finally {
       setSending(false);
