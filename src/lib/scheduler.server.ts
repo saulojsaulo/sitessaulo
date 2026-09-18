@@ -4,7 +4,15 @@
  */
 import { supabase } from "./supabase";
 import { generateWithGemini } from "./ai.server";
-import { SYSTEM_PROMPT, buildSectionPrompt, buildStructurePrompt, summarizeOutline } from "./prompts";
+import {
+  SYSTEM_PROMPT,
+  REVIEW_SYSTEM_PROMPT,
+  buildSectionPrompt,
+  buildStructurePrompt,
+  buildReviewPrompt,
+  parseReviewOutput,
+  summarizeOutline,
+} from "./prompts";
 import {
   buildArticle,
   parseWorkspace,

@@ -40,9 +40,9 @@ export interface Post {
 
 export const STATUS_LABEL: Record<PostStatus, string> = {
   rascunho: "Rascunho",
-  estrutura: "Estrutura",
-  sessoes_completas: "Sessões Completas",
-  aguardando_revisao: "Artigo Aguardando Revisão",
+  estrutura: "Estrutura Bruta",
+  sessoes_completas: "Estruturas Individuais",
+  aguardando_revisao: "Artigo IA Gerado",
   artigo_completo: "Artigo Completo",
   agendado: "Agendado",
   publicado: "Publicado",
