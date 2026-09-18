@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,9 +9,91 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
-import { runPostPipeline, getPlanForDate } from "@/lib/scheduler.functions";
+import { runPostPipeline, getPlanForDate, getPostsProgress } from "@/lib/scheduler.functions";
 import { CYCLES, toISODate, type CycleKey } from "@/lib/scheduler";
 import { cn } from "@/lib/utils";
+
+interface Progress {
+  postId: string;
+  hasRaw: boolean;
+  sections: number;
+  sectionsDone: number;
+  hasArticle: boolean;
+  hasPublished: boolean;
+}
+
+type StopTone = "vazio" | "andando" | "ok";
+
+interface Stop {
+  label: string;
+  tone: StopTone;
+  detail?: string;
+}
+
+/** Paradas da linha do tempo, derivadas do conteúdo salvo da postagem. */
+function stopsFor(p: Progress | undefined, running: boolean): Stop[] {
+  const raw = p?.hasRaw ?? false;
+  const total = p?.sections ?? 0;
+  const done = p?.sectionsDone ?? 0;
+  const article = p?.hasArticle ?? false;
+  const published = p?.hasPublished ?? false;
+  const mark = (ok: boolean, active: boolean): StopTone =>
+    ok ? "ok" : active && running ? "andando" : "vazio";
+
+  return [
+    { label: "Estrutura Bruta", tone: mark(raw, true) },
+    { label: "Estruturas Individuais", tone: mark(total > 0, raw) },
+    {
+      label: "Sessões com IA",
+      tone: mark(total > 0 && done >= total, total > 0),
+      detail: total > 0 ? `${done}/${total}` : undefined,
+    },
+    { label: "Artigo Prompt", tone: mark(article && total > 0 && done >= total, done > 0) },
+    { label: "Artigo Publicação", tone: mark(published, article) },
+  ];
+}
+
+function Timeline({ stops }: { stops: Stop[] }) {
+  return (
+    <ol className="mt-2 flex w-full flex-wrap items-start gap-x-1 gap-y-3">
+      {stops.map((s, i) => (
+        <li key={s.label} className="flex min-w-0 flex-1 basis-28 items-start gap-1">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div className="flex w-full items-center">
+              <span className={cn("h-px flex-1", i === 0 ? "bg-transparent" : "bg-border")} />
+              <span
+                className={cn(
+                  "grid size-3 shrink-0 place-items-center rounded-full border-2",
+                  s.tone === "ok" && "border-success bg-success",
+                  s.tone === "andando" && "animate-pulse border-primary bg-primary",
+                  s.tone === "vazio" && "border-border bg-background",
+                )}
+                aria-hidden
+              />
+              <span
+                className={cn(
+                  "h-px flex-1",
+                  i === stops.length - 1 ? "bg-transparent" : "bg-border",
+                )}
+              />
+            </div>
+            <span
+              className={cn(
+                "text-center text-[10px] leading-tight",
+                s.tone === "vazio" ? "text-muted-foreground" : "font-medium",
+                s.tone === "ok" && "text-success",
+                s.tone === "andando" && "text-primary",
+              )}
+            >
+              {s.label}
+              {s.detail ? ` · ${s.detail}` : ""}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 
 export const Route = createFileRoute("/agendador")({
