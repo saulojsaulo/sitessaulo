@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CalendarDays, ChevronDown, Loader2, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { WpPublishPanel } from "@/components/wp-publish";
@@ -290,7 +291,9 @@ function SchedulerPage() {
                 <label className="flex items-center gap-2 text-xs font-medium">
                   <Checkbox
                     checked={selected.length === items.length && items.length > 0}
-                    onCheckedChange={(v) => setSelected(v ? items.map((i) => i.postId) : [])}
+                    onCheckedChange={(v: boolean | "indeterminate") =>
+                      setSelected(v === true ? items.map((i) => i.postId) : [])
+                    }
                   />
                   Selecionar todos
                 </label>
