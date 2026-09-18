@@ -27,7 +27,7 @@ type StopTone = "vazio" | "andando" | "ok";
 interface Stop {
   label: string;
   tone: StopTone;
-  detail?: string;
+  detail?: string | undefined;
 }
 
 /** Paradas da linha do tempo, derivadas do conteúdo salvo da postagem. */
