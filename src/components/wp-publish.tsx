@@ -377,7 +377,9 @@ export function WpPublishPanel({
             ...(target.categoryIds.length ? { categories: target.categoryIds } : {}),
             ...(tagIds.length ? { tags: tagIds } : {}),
             ...(target.authorId ? { authorId: Number(target.authorId) } : {}),
-            ...(cover ? { cover, coverFileName: slugify(title) || "capa" } : {}),
+            ...(coverImage
+              ? { cover: coverImage, coverFileName: slugify(title) || "capa" }
+              : {}),
           },
         });
 
