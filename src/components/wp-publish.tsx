@@ -246,6 +246,7 @@ export function WpPublishPanel({
   tags,
   blogName,
   categoryName,
+  onPublished,
 }: {
   postId: string | null;
   title: string;
@@ -254,6 +255,8 @@ export function WpPublishPanel({
   tags: string[];
   blogName?: string | undefined;
   categoryName?: string | undefined;
+  /** Avisa quando o envio deu certo, com o status escolhido no WordPress. */
+  onPublished?: ((info: { wpStatus: WpStatus; date?: string | undefined }) => void) | undefined;
 }) {
   const connections = useWpConnections();
   const publications = useWpPublications();
