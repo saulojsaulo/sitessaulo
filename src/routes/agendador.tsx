@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CalendarDays, ChevronDown, Loader2, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { WpPublishPanel } from "@/components/wp-publish";
@@ -130,6 +131,9 @@ function SchedulerPage() {
   const [statusById, setStatusById] = useState<Record<string, PostStatus>>({});
   /** Postagem com o painel de publicação do WordPress aberto. */
   const [openWp, setOpenWp] = useState<string | null>(null);
+  /** Artigos marcados para processamento em lote. */
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batch, setBatch] = useState(false);
   const runPost = useServerFn(runPostPipeline);
   const loadPlan = useServerFn(getPlanForDate);
   const loadProgress = useServerFn(getPostsProgress);
@@ -213,16 +217,32 @@ function SchedulerPage() {
         await refreshProgress([postId]);
         if (res.done) {
           toast.success(`"${title}" concluído — Artigo Completo pronto para publicação`);
-          return;
+          return true;
         }
       }
       toast.info(`"${title}": ainda em andamento, clique em Processar novamente.`);
+      return false;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao processar o artigo");
       await refreshProgress([postId]);
+      return false;
     } finally {
       setBusy(null);
     }
+  };
+
+  /** Processa em fila todos os artigos marcados, um após o outro. */
+  const processSelected = async () => {
+    const queue = items.filter((i) => selected.includes(i.postId));
+    if (queue.length === 0) return;
+    setBatch(true);
+    let ok = 0;
+    for (const item of queue) {
+      const done = await processItem(item.postId, item.postTitle);
+      if (done) ok += 1;
+    }
+    setBatch(false);
+    toast.success(`${ok} de ${queue.length} artigo(s) concluído(s)`);
   };
 
   return (
@@ -267,6 +287,33 @@ function SchedulerPage() {
             />
           ) : (
             <div className="grid gap-2">
+              <div className="surface flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <label className="flex items-center gap-2 text-xs font-medium">
+                  <Checkbox
+                    checked={selected.length === items.length && items.length > 0}
+                    onCheckedChange={(v: boolean | "indeterminate") =>
+                      setSelected(v === true ? items.map((i) => i.postId) : [])
+                    }
+                  />
+                  Selecionar todos
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {selected.length} selecionado(s)
+                </span>
+                <Button
+                  size="sm"
+                  className="ml-auto gap-1.5"
+                  disabled={selected.length === 0 || busy !== null || batch}
+                  onClick={() => void processSelected()}
+                >
+                  {batch ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )}
+                  Processar Selecionados
+                </Button>
+              </div>
               {items.map((item) => {
                 const post = postById.get(item.postId);
                 const status = statusById[item.postId] ?? post?.status;
@@ -282,6 +329,17 @@ function SchedulerPage() {
                     )}
                   >
                     <div className="flex flex-wrap items-center gap-3">
+                      <Checkbox
+                        checked={selected.includes(item.postId)}
+                        onCheckedChange={(v: boolean | "indeterminate") =>
+                          setSelected((s) =>
+                            v === true
+                              ? [...s, item.postId]
+                              : s.filter((x) => x !== item.postId),
+                          )
+                        }
+                        aria-label={`Selecionar ${item.postTitle}`}
+                      />
                       <button
                         type="button"
                         onClick={() => openPost(item.postId)}
