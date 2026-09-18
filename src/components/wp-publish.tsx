@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { parseWorkspace } from "@/lib/content-workspace";
 import { articleToHtml, slugify, type WpConnectionRow } from "@/lib/wp-types";
 import { createWpTerm, publishWpPost } from "@/lib/wp.functions";
