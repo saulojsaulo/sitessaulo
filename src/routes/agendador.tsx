@@ -266,42 +266,46 @@ function SchedulerPage() {
             <div className="grid gap-2">
               {items.map((item) => {
                 const post = postById.get(item.postId);
-                const status = post?.status;
+                const status = statusById[item.postId] ?? post?.status;
+                const running = busy === item.postId;
                 return (
                   <div
                     key={`${item.blogId}-${item.postId}`}
                     className={cn(
-                      "surface flex flex-wrap items-center gap-3 border-l-4 px-4 py-2.5",
+                      "surface border-l-4 px-4 py-2.5",
                       status === "publicado" && "border-l-success bg-success/10",
                       status === "agendado" && "border-l-warning bg-warning/10",
                       status !== "publicado" && status !== "agendado" && "border-l-transparent",
                     )}
                   >
-                    <button
-                      type="button"
-                      onClick={() => openPost(item.postId)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {item.position + 1}. {item.blogName} · {catName(item.categoryId)}
-                      </div>
-                      <div className="truncate font-medium">{item.postTitle}</div>
-                    </button>
-                    {status ? <StatusBadge status={status} /> : null}
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-1.5"
-                      disabled={busy !== null}
-                      onClick={() => void processItem(item.postId, item.postTitle)}
-                    >
-                      {busy === item.postId ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="size-4" />
-                      )}
-                      Processar
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => openPost(item.postId)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {item.position + 1}. {item.blogName} · {catName(item.categoryId)}
+                        </div>
+                        <div className="truncate font-medium">{item.postTitle}</div>
+                      </button>
+                      {status ? <StatusBadge status={status} /> : null}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={busy !== null}
+                        onClick={() => void processItem(item.postId, item.postTitle)}
+                      >
+                        {running ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="size-4" />
+                        )}
+                        Processar
+                      </Button>
+                    </div>
+                    <Timeline stops={stopsFor(progress[item.postId], running)} />
                   </div>
                 );
               })}
