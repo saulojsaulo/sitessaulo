@@ -316,6 +316,14 @@ export function WpPublishPanel({
     return (w.published.trim() || w.article).trim();
   };
 
+  // A capa (base64) não vem na lista leve de postagens: busca sob demanda.
+  const freshCover = async () => {
+    if (cover) return cover;
+    if (!postId) return undefined;
+    const { data } = await supabase.from("posts").select("cover").eq("id", postId).maybeSingle();
+    return ((data as { cover?: string | null } | null)?.cover ?? undefined) || undefined;
+  };
+
   const toggle = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     setTargets((t) => (t[id] ? t : { ...t, [id]: defaultTarget(title) }));
