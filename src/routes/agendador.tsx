@@ -286,6 +286,31 @@ function SchedulerPage() {
             />
           ) : (
             <div className="grid gap-2">
+              <div className="surface flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <label className="flex items-center gap-2 text-xs font-medium">
+                  <Checkbox
+                    checked={selected.length === items.length && items.length > 0}
+                    onCheckedChange={(v) => setSelected(v ? items.map((i) => i.postId) : [])}
+                  />
+                  Selecionar todos
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {selected.length} selecionado(s)
+                </span>
+                <Button
+                  size="sm"
+                  className="ml-auto gap-1.5"
+                  disabled={selected.length === 0 || busy !== null || batch}
+                  onClick={() => void processSelected()}
+                >
+                  {batch ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )}
+                  Processar Selecionados
+                </Button>
+              </div>
               {items.map((item) => {
                 const post = postById.get(item.postId);
                 const status = statusById[item.postId] ?? post?.status;
