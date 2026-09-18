@@ -339,15 +339,17 @@ export function WpPublishPanel({
       toast.error("Informe o título da postagem");
       return;
     }
-    if (!article) {
-      toast.error("O Artigo Pronto está vazio — gere o conteúdo antes de publicar");
-      return;
-    }
     if (selected.length === 0) {
       toast.error("Selecione ao menos um blog de destino");
       return;
     }
     setSending(true);
+    const body = await freshArticle();
+    if (!body) {
+      setSending(false);
+      toast.error("O Artigo Publicação está vazio — gere o conteúdo antes de publicar");
+      return;
+    }
     try {
       for (const id of selected) {
         const conn = rows.find((c) => c.id === id);
