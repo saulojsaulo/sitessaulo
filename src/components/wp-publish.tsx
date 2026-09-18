@@ -360,7 +360,7 @@ export function WpPublishPanel({
           data: {
             connectionId: id,
             title: title.trim(),
-            content: articleToHtml(article),
+            content: articleToHtml(body),
             status: target.status,
             ...(target.status === "future" ? { date: target.date } : {}),
             ...(target.slug ? { slug: slugify(target.slug) } : {}),
