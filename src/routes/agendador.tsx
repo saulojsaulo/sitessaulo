@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,9 +9,92 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
-import { runPostPipeline, getPlanForDate } from "@/lib/scheduler.functions";
+import type { PostStatus } from "@/lib/types";
+import { runPostPipeline, getPlanForDate, getPostsProgress } from "@/lib/scheduler.functions";
 import { CYCLES, toISODate, type CycleKey } from "@/lib/scheduler";
 import { cn } from "@/lib/utils";
+
+interface Progress {
+  postId: string;
+  hasRaw: boolean;
+  sections: number;
+  sectionsDone: number;
+  hasArticle: boolean;
+  hasPublished: boolean;
+}
+
+type StopTone = "vazio" | "andando" | "ok";
+
+interface Stop {
+  label: string;
+  tone: StopTone;
+  detail?: string | undefined;
+}
+
+/** Paradas da linha do tempo, derivadas do conteúdo salvo da postagem. */
+function stopsFor(p: Progress | undefined, running: boolean): Stop[] {
+  const raw = p?.hasRaw ?? false;
+  const total = p?.sections ?? 0;
+  const done = p?.sectionsDone ?? 0;
+  const article = p?.hasArticle ?? false;
+  const published = p?.hasPublished ?? false;
+  const mark = (ok: boolean, active: boolean): StopTone =>
+    ok ? "ok" : active && running ? "andando" : "vazio";
+
+  return [
+    { label: "Estrutura Bruta", tone: mark(raw, true) },
+    { label: "Estruturas Individuais", tone: mark(total > 0, raw) },
+    {
+      label: "Sessões com IA",
+      tone: mark(total > 0 && done >= total, total > 0),
+      detail: total > 0 ? `${done}/${total}` : undefined,
+    },
+    { label: "Artigo Prompt", tone: mark(article && total > 0 && done >= total, done > 0) },
+    { label: "Artigo Publicação", tone: mark(published, article) },
+  ];
+}
+
+function Timeline({ stops }: { stops: Stop[] }) {
+  return (
+    <ol className="mt-2 flex w-full flex-wrap items-start gap-x-1 gap-y-3">
+      {stops.map((s, i) => (
+        <li key={s.label} className="flex min-w-0 flex-1 basis-28 items-start gap-1">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div className="flex w-full items-center">
+              <span className={cn("h-px flex-1", i === 0 ? "bg-transparent" : "bg-border")} />
+              <span
+                className={cn(
+                  "grid size-3 shrink-0 place-items-center rounded-full border-2",
+                  s.tone === "ok" && "border-success bg-success",
+                  s.tone === "andando" && "animate-pulse border-primary bg-primary",
+                  s.tone === "vazio" && "border-border bg-background",
+                )}
+                aria-hidden
+              />
+              <span
+                className={cn(
+                  "h-px flex-1",
+                  i === stops.length - 1 ? "bg-transparent" : "bg-border",
+                )}
+              />
+            </div>
+            <span
+              className={cn(
+                "text-center text-[10px] leading-tight",
+                s.tone === "vazio" ? "text-muted-foreground" : "font-medium",
+                s.tone === "ok" && "text-success",
+                s.tone === "andando" && "text-primary",
+              )}
+            >
+              {s.label}
+              {s.detail ? ` · ${s.detail}` : ""}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 
 export const Route = createFileRoute("/agendador")({
@@ -42,8 +125,11 @@ function SchedulerPage() {
   const [cycle, setCycle] = useState<CycleKey>("manha");
   const dateISO = toISODate(date);
   const [busy, setBusy] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Record<string, Progress>>({});
+  const [statusById, setStatusById] = useState<Record<string, PostStatus>>({});
   const runPost = useServerFn(runPostPipeline);
   const loadPlan = useServerFn(getPlanForDate);
+  const loadProgress = useServerFn(getPostsProgress);
 
   const cycleIndex = CYCLES.findIndex((c) => c.key === cycle);
 
@@ -68,6 +154,40 @@ function SchedulerPage() {
       }));
   }, [planQuery.data, cycleIndex]);
 
+  const postIds = useMemo(() => items.map((i) => i.postId), [items]);
+
+  const refreshProgress = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) return;
+      try {
+        const res = await loadProgress({ data: { postIds: ids } });
+        setProgress((prev) => {
+          const next = { ...prev };
+          for (const row of res.rows) next[row.postId] = row;
+          return next;
+        });
+        setStatusById((prev) => {
+          const next = { ...prev };
+          for (const row of res.rows) next[row.postId] = row.status;
+          return next;
+        });
+      } catch {
+        /* a linha do tempo volta a atualizar na próxima tentativa */
+      }
+    },
+    [loadProgress],
+  );
+
+  /** Linha do tempo ao abrir a data (e sempre que o plano muda). */
+  useQuery({
+    queryKey: ["scheduler_progress", dateISO, cycleIndex, postIds.join(",")],
+    queryFn: async () => {
+      await refreshProgress(postIds);
+      return true;
+    },
+    enabled: postIds.length > 0,
+    staleTime: 10_000,
+  });
 
   const postById = useMemo(() => new Map(posts.map((p) => [p.id, p])), [posts]);
   const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
@@ -76,14 +196,27 @@ function SchedulerPage() {
     void navigate({ to: "/postagens", search: { post: postId } });
   };
 
+  /**
+   * Roteiro completo: estrutura → estruturas individuais → sessões com IA →
+   * artigo prompt → revisão → artigo publicação. Cada chamada avança o que
+   * cabe no tempo do servidor; aqui repetimos até concluir, atualizando a
+   * linha do tempo em tempo real.
+   */
   const processItem = async (postId: string, title: string) => {
     setBusy(postId);
     try {
-      const res = await runPost({ data: { postId } });
-      if (res.done) toast.success(`"${title}" chegou em Artigo Aguardando Revisão`);
-      else toast.info(`"${title}": ${res.steps} etapa(s) concluída(s).`);
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const res = await runPost({ data: { postId } });
+        await refreshProgress([postId]);
+        if (res.done) {
+          toast.success(`"${title}" concluído — Artigo Completo pronto para publicação`);
+          return;
+        }
+      }
+      toast.info(`"${title}": ainda em andamento, clique em Processar novamente.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao processar o artigo");
+      await refreshProgress([postId]);
     } finally {
       setBusy(null);
     }
@@ -133,42 +266,46 @@ function SchedulerPage() {
             <div className="grid gap-2">
               {items.map((item) => {
                 const post = postById.get(item.postId);
-                const status = post?.status;
+                const status = statusById[item.postId] ?? post?.status;
+                const running = busy === item.postId;
                 return (
                   <div
                     key={`${item.blogId}-${item.postId}`}
                     className={cn(
-                      "surface flex flex-wrap items-center gap-3 border-l-4 px-4 py-2.5",
+                      "surface border-l-4 px-4 py-2.5",
                       status === "publicado" && "border-l-success bg-success/10",
                       status === "agendado" && "border-l-warning bg-warning/10",
                       status !== "publicado" && status !== "agendado" && "border-l-transparent",
                     )}
                   >
-                    <button
-                      type="button"
-                      onClick={() => openPost(item.postId)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {item.position + 1}. {item.blogName} · {catName(item.categoryId)}
-                      </div>
-                      <div className="truncate font-medium">{item.postTitle}</div>
-                    </button>
-                    {status ? <StatusBadge status={status} /> : null}
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-1.5"
-                      disabled={busy !== null}
-                      onClick={() => void processItem(item.postId, item.postTitle)}
-                    >
-                      {busy === item.postId ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="size-4" />
-                      )}
-                      Processar
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => openPost(item.postId)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {item.position + 1}. {item.blogName} · {catName(item.categoryId)}
+                        </div>
+                        <div className="truncate font-medium">{item.postTitle}</div>
+                      </button>
+                      {status ? <StatusBadge status={status} /> : null}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={busy !== null}
+                        onClick={() => void processItem(item.postId, item.postTitle)}
+                      >
+                        {running ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="size-4" />
+                        )}
+                        Processar
+                      </Button>
+                    </div>
+                    <Timeline stops={stopsFor(progress[item.postId], running)} />
                   </div>
                 );
               })}

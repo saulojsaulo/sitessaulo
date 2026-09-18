@@ -22,6 +22,16 @@ export const runPostPipeline = createServerFn({ method: "POST" })
     return runPipeline(data.postId, data.runId);
   });
 
+/** Progresso (linha do tempo) das postagens do dia. */
+export const getPostsProgress = createServerFn({ method: "POST" })
+  .inputValidator((input: { postIds: string[] }) => ({
+    postIds: Array.isArray(input?.postIds) ? input.postIds.map(String).slice(0, 100) : [],
+  }))
+  .handler(async ({ data }) => {
+    const { readProgress } = await import("./scheduler.server");
+    return { rows: await readProgress(data.postIds) };
+  });
+
 
 /** Garante que os registros de uma data existem e devolve a lista. */
 export const ensureSchedulerRuns = createServerFn({ method: "POST" })
