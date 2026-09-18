@@ -130,6 +130,9 @@ function SchedulerPage() {
   const [statusById, setStatusById] = useState<Record<string, PostStatus>>({});
   /** Postagem com o painel de publicação do WordPress aberto. */
   const [openWp, setOpenWp] = useState<string | null>(null);
+  /** Artigos marcados para processamento em lote. */
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batch, setBatch] = useState(false);
   const runPost = useServerFn(runPostPipeline);
   const loadPlan = useServerFn(getPlanForDate);
   const loadProgress = useServerFn(getPostsProgress);
