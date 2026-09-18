@@ -371,8 +371,13 @@ export function WpPublishPanel({
           error: res.ok ? null : (res.error ?? "Erro desconhecido"),
         });
 
-        if (res.ok) toast.success(`${conn.name}: enviado com sucesso`);
-        else toast.error(`${conn.name}: ${res.error}`);
+        if (res.ok) {
+          toast.success(`${conn.name}: enviado com sucesso`);
+          onPublished?.({
+            wpStatus: target.status,
+            date: target.status === "future" ? target.date : undefined,
+          });
+        } else toast.error(`${conn.name}: ${res.error}`);
       }
     } finally {
       setSending(false);
