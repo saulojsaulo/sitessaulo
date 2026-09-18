@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
 import { useStore } from "@/lib/store";
+import type { PostStatus } from "@/lib/types";
 import { runPostPipeline, getPlanForDate, getPostsProgress } from "@/lib/scheduler.functions";
 import { CYCLES, toISODate, type CycleKey } from "@/lib/scheduler";
 import { cn } from "@/lib/utils";
