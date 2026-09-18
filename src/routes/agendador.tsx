@@ -121,7 +121,7 @@ export const Route = createFileRoute("/agendador")({
 
 function SchedulerPage() {
   const navigate = useNavigate();
-  const { categories, posts } = useStore();
+  const { categories, posts, updatePost } = useStore();
   const [date, setDate] = useState<Date>(() => new Date());
   const [cycle, setCycle] = useState<CycleKey>("manha");
   const dateISO = toISODate(date);
@@ -307,8 +307,61 @@ function SchedulerPage() {
                         )}
                         Processar
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() =>
+                          setOpenWp((cur) => (cur === item.postId ? null : item.postId))
+                        }
+                      >
+                        <Send className="size-4" />
+                        Publicar no WordPress
+                        <ChevronDown
+                          className={cn(
+                            "size-4 transition-transform",
+                            openWp === item.postId && "rotate-180",
+                          )}
+                        />
+                      </Button>
                     </div>
                     <Timeline stops={stopsFor(progress[item.postId], running)} />
+                    {openWp === item.postId ? (
+                      post ? (
+                        <div className="mt-3 border-t pt-3">
+                          <WpPublishPanel
+                            postId={post.id}
+                            title={post.title}
+                            content={post.content}
+                            cover={post.cover}
+                            tags={post.tags}
+                            blogName={item.blogName}
+                            categoryName={catName(item.categoryId)}
+                            onPublished={({ wpStatus, date: when }) => {
+                              if (wpStatus === "draft") return;
+                              const next: PostStatus =
+                                wpStatus === "publish" ? "publicado" : "agendado";
+                              updatePost(post.id, {
+                                status: next,
+                                ...(wpStatus === "future" && when
+                                  ? { publishDate: new Date(when).toISOString() }
+                                  : {}),
+                              });
+                              setStatusById((prev) => ({ ...prev, [post.id]: next }));
+                              toast.success(
+                                next === "publicado"
+                                  ? `"${post.title}" marcado como Publicado`
+                                  : `"${post.title}" marcado como Agendado`,
+                              );
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+                          Abra a postagem para carregar os dados de publicação.
+                        </p>
+                      )
+                    ) : null}
                   </div>
                 );
               })}
