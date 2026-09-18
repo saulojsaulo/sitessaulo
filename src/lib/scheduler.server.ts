@@ -175,7 +175,7 @@ async function stepOnce(postId: string, runId?: string): Promise<StepResult> {
 
   let ws = parseWorkspace(post.content);
 
-  // Etapa 1 — Estrutura
+  // Etapa 1 — Estrutura Bruta ("Gerar com IA")
   if (!ws.raw.trim()) {
     const raw = await generateWithGemini(buildStructurePrompt(post.title, ctx), SYSTEM_PROMPT, {
       kind: "estrutura",
@@ -188,7 +188,8 @@ async function stepOnce(postId: string, runId?: string): Promise<StepResult> {
     if (runId) await patchRun(runId, { structure_at: nowISO() });
     return "progress";
   }
-  // Garante as sessões derivadas da estrutura
+
+  // Etapa 2 — Estruturas Individuais (divide a estrutura em sessões)
   let sections = ws.sections;
   if (sections.length === 0 || sections.some((s) => !s.prompt.trim())) {
     const split = splitSections(ws.raw);
@@ -197,11 +198,12 @@ async function stepOnce(postId: string, runId?: string): Promise<StepResult> {
     const previous = new Map(ws.sections.map((s) => [s.prompt.trim(), s.response]));
     sections = split.sections.map((s) => ({ ...s, response: previous.get(s.prompt.trim()) ?? "" }));
     ws = { ...ws, sections };
-    await savePost(post.id, serializeWorkspace(ws), "estrutura");
+    await savePost(post.id, serializeWorkspace(ws), "sessoes_completas");
     if (runId) await patchRun(runId, { structure_at: nowISO() });
+    return "progress";
   }
 
-  // Etapa 2 — uma sessão por passo
+  // Etapa 3 — uma sessão por passo ("Gerar Todas as Sessões com IA")
   const idx = sections.findIndex((s) => !s.response.trim());
   if (idx >= 0) {
     const outline = summarizeOutline(sections.map((s) => s.prompt));
@@ -220,20 +222,75 @@ async function stepOnce(postId: string, runId?: string): Promise<StepResult> {
     sections = sections.map((s, j) => (j === idx ? { ...s, response: text } : s));
     ws = { ...ws, sections, article: buildArticle(sections), manual: false };
     const last = idx === sections.length - 1;
-    await savePost(post.id, serializeWorkspace(ws), last ? "sessoes_completas" : "estrutura");
+    await savePost(
+      post.id,
+      serializeWorkspace(ws),
+      last ? "aguardando_revisao" : "sessoes_completas",
+    );
     if (runId && last) await patchRun(runId, { sections_at: nowISO() });
     return "progress";
   }
 
-  if (runId) await patchRun(runId, { sections_at: nowISO() });
-
-  // Etapa 3 — Artigo Pronto aguardando revisão
+  // Etapa 4 — Artigo Prompt (junta as sessões geradas)
   const article = buildArticle(sections);
   if (!article.trim()) throw new Error("Artigo montado ficou vazio");
-  ws = { ...ws, sections, article, manual: false };
-  await savePost(post.id, serializeWorkspace(ws), "aguardando_revisao");
+  if (article.trim() !== ws.article.trim()) {
+    ws = { ...ws, sections, article, manual: false };
+    await savePost(post.id, serializeWorkspace(ws), "aguardando_revisao");
+    if (runId) await patchRun(runId, { sections_at: nowISO() });
+    return "progress";
+  }
+
+  // Etapa 5/6 — Revisar Conteúdo → Artigo Publicação
+  if (!ws.published.trim()) {
+    const reviewed = await generateWithGemini(buildReviewPrompt(article), REVIEW_SYSTEM_PROMPT, {
+      kind: "revisao",
+      postId: post.id,
+      postTitle: post.title,
+    });
+    const parsed = parseReviewOutput(reviewed);
+    if (!parsed.article.trim()) throw new Error("A IA não retornou o artigo revisado");
+    ws = { ...ws, sections, article, manual: false, published: parsed.article };
+    await savePost(post.id, serializeWorkspace(ws), "artigo_completo");
+    if (runId) await patchRun(runId, { article_at: nowISO(), state: "concluido", error: null });
+    return "done";
+  }
+
+  await savePost(post.id, serializeWorkspace({ ...ws, sections, article }), "artigo_completo");
   if (runId) await patchRun(runId, { article_at: nowISO(), state: "concluido", error: null });
   return "done";
+}
+
+export interface PostProgress {
+  postId: string;
+  status: Post["status"];
+  hasRaw: boolean;
+  sections: number;
+  sectionsDone: number;
+  hasArticle: boolean;
+  hasPublished: boolean;
+}
+
+/** Progresso de cada postagem para a linha do tempo do Agendador. */
+export async function readProgress(postIds: string[]): Promise<PostProgress[]> {
+  if (postIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id,content,status")
+    .in("id", postIds);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { id: string; content: string; status: string }[]).map((row) => {
+    const ws = parseWorkspace(row.content ?? "");
+    return {
+      postId: row.id,
+      status: row.status as Post["status"],
+      hasRaw: ws.raw.trim() !== "",
+      sections: ws.sections.length,
+      sectionsDone: ws.sections.filter((s) => s.response.trim() !== "").length,
+      hasArticle: ws.article.trim() !== "",
+      hasPublished: ws.published.trim() !== "",
+    };
+  });
 }
 
 export interface PipelineResult {
