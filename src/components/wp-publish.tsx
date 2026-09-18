@@ -353,6 +353,7 @@ export function WpPublishPanel({
     }
     setSending(true);
     const body = await freshArticle();
+    const coverImage = await freshCover();
     if (!body) {
       setSending(false);
       toast.error("O Artigo Publicação está vazio — gere o conteúdo antes de publicar");
