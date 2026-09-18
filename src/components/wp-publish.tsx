@@ -305,6 +305,16 @@ export function WpPublishPanel({
   const ws = parseWorkspace(content);
   const article = (ws.published.trim() || ws.article).trim();
 
+  // O conteúdo em memória pode estar desatualizado (pipeline grava no servidor).
+  const freshArticle = async () => {
+    if (article) return article;
+    if (!postId) return "";
+    const { data } = await supabase.from("posts").select("content").eq("id", postId).maybeSingle();
+    const raw = (data as { content?: string } | null)?.content ?? "";
+    const w = parseWorkspace(raw);
+    return (w.published.trim() || w.article).trim();
+  };
+
   const toggle = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     setTargets((t) => (t[id] ? t : { ...t, [id]: defaultTarget(title) }));
