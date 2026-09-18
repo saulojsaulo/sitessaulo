@@ -128,6 +128,8 @@ function SchedulerPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [statusById, setStatusById] = useState<Record<string, PostStatus>>({});
+  /** Postagem com o painel de publicação do WordPress aberto. */
+  const [openWp, setOpenWp] = useState<string | null>(null);
   const runPost = useServerFn(runPostPipeline);
   const loadPlan = useServerFn(getPlanForDate);
   const loadProgress = useServerFn(getPostsProgress);
