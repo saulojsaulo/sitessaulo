@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { parseWorkspace } from "@/lib/content-workspace";
 import { articleToHtml, slugify, type WpConnectionRow } from "@/lib/wp-types";
 import { createWpTerm, publishWpPost } from "@/lib/wp.functions";
@@ -305,6 +306,16 @@ export function WpPublishPanel({
   const ws = parseWorkspace(content);
   const article = (ws.published.trim() || ws.article).trim();
 
+  // O conteúdo em memória pode estar desatualizado (pipeline grava no servidor).
+  const freshArticle = async () => {
+    if (article) return article;
+    if (!postId) return "";
+    const { data } = await supabase.from("posts").select("content").eq("id", postId).maybeSingle();
+    const raw = (data as { content?: string } | null)?.content ?? "";
+    const w = parseWorkspace(raw);
+    return (w.published.trim() || w.article).trim();
+  };
+
   const toggle = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     setTargets((t) => (t[id] ? t : { ...t, [id]: defaultTarget(title) }));
@@ -328,15 +339,17 @@ export function WpPublishPanel({
       toast.error("Informe o título da postagem");
       return;
     }
-    if (!article) {
-      toast.error("O Artigo Pronto está vazio — gere o conteúdo antes de publicar");
-      return;
-    }
     if (selected.length === 0) {
       toast.error("Selecione ao menos um blog de destino");
       return;
     }
     setSending(true);
+    const body = await freshArticle();
+    if (!body) {
+      setSending(false);
+      toast.error("O Artigo Publicação está vazio — gere o conteúdo antes de publicar");
+      return;
+    }
     try {
       for (const id of selected) {
         const conn = rows.find((c) => c.id === id);
@@ -347,7 +360,7 @@ export function WpPublishPanel({
           data: {
             connectionId: id,
             title: title.trim(),
-            content: articleToHtml(article),
+            content: articleToHtml(body),
             status: target.status,
             ...(target.status === "future" ? { date: target.date } : {}),
             ...(target.slug ? { slug: slugify(target.slug) } : {}),
