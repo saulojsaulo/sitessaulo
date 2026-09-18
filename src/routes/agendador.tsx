@@ -329,6 +329,17 @@ function SchedulerPage() {
                     )}
                   >
                     <div className="flex flex-wrap items-center gap-3">
+                      <Checkbox
+                        checked={selected.includes(item.postId)}
+                        onCheckedChange={(v: boolean | "indeterminate") =>
+                          setSelected((s) =>
+                            v === true
+                              ? [...s, item.postId]
+                              : s.filter((x) => x !== item.postId),
+                          )
+                        }
+                        aria-label={`Selecionar ${item.postTitle}`}
+                      />
                       <button
                         type="button"
                         onClick={() => openPost(item.postId)}
