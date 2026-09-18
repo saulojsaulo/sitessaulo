@@ -213,16 +213,32 @@ function SchedulerPage() {
         await refreshProgress([postId]);
         if (res.done) {
           toast.success(`"${title}" concluído — Artigo Completo pronto para publicação`);
-          return;
+          return true;
         }
       }
       toast.info(`"${title}": ainda em andamento, clique em Processar novamente.`);
+      return false;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao processar o artigo");
       await refreshProgress([postId]);
+      return false;
     } finally {
       setBusy(null);
     }
+  };
+
+  /** Processa em fila todos os artigos marcados, um após o outro. */
+  const processSelected = async () => {
+    const queue = items.filter((i) => selected.includes(i.postId));
+    if (queue.length === 0) return;
+    setBatch(true);
+    let ok = 0;
+    for (const item of queue) {
+      const done = await processItem(item.postId, item.postTitle);
+      if (done) ok += 1;
+    }
+    setBatch(false);
+    toast.success(`${ok} de ${queue.length} artigo(s) concluído(s)`);
   };
 
   return (
