@@ -833,15 +833,30 @@ function PostsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Imagem de capa</Label>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full gap-2 sm:w-auto"
-                  disabled={!draft.title.trim()}
-                  onClick={generateCoverPrompt}
-                >
-                  <Sparkles className="size-4" /> Gerar Prompt Imagem de Capa
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full gap-2 sm:w-auto"
+                    disabled={!draft.title.trim()}
+                    onClick={generateCoverPrompt}
+                  >
+                    <Sparkles className="size-4" /> Gerar Prompt Imagem de Capa
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full gap-2 sm:w-auto"
+                    disabled={!draft.title.trim() || coverBusy}
+                    onClick={generateCoverWithAI}
+                  >
+                    {coverBusy ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    Gerar Imagem com IA
+                  </Button>
+                </div>
                 <ImagePicker
                   value={draft.cover}
                   label="capa"
