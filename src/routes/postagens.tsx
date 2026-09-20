@@ -63,6 +63,8 @@ import {
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useServerFn } from "@tanstack/react-start";
+import { generateCoverImageFn } from "@/lib/image.functions";
 
 export const Route = createFileRoute("/postagens")({
   validateSearch: (
@@ -307,6 +309,9 @@ function PostsPage() {
     categories,
   ]);
 
+
+  const [coverBusy, setCoverBusy] = useState(false);
+  const makeCoverImage = useServerFn(generateCoverImageFn);
 
   const startCreate = () => {
     if (!activeBlog) {
