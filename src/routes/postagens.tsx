@@ -63,6 +63,8 @@ import {
 import { STATUS_LABEL, type Post, type PostStatus } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useServerFn } from "@tanstack/react-start";
+import { generateCoverImageFn } from "@/lib/image.functions";
 
 export const Route = createFileRoute("/postagens")({
   validateSearch: (
@@ -308,6 +310,9 @@ function PostsPage() {
   ]);
 
 
+  const [coverBusy, setCoverBusy] = useState(false);
+  const makeCoverImage = useServerFn(generateCoverImageFn);
+
   const startCreate = () => {
     if (!activeBlog) {
       toast.error("Cadastre um blog primeiro");
@@ -392,6 +397,27 @@ function PostsPage() {
       toast.success("Prompt da capa copiado!");
     } catch {
       toast.error("Não foi possível copiar o prompt");
+    }
+  };
+
+  const generateCoverWithAI = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar a imagem");
+      return;
+    }
+    const prompt = buildCoverImagePrompt(title, catName(draft.categoryId));
+    setCoverBusy(true);
+    try {
+      const { dataUrl } = await makeCoverImage({ data: { prompt } });
+      setDraft((d) => (d ? { ...d, cover: dataUrl } : d));
+      if (editing) updatePost(editing.id, { cover: dataUrl });
+      toast.success("Imagem de capa gerada!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível gerar a imagem");
+    } finally {
+      setCoverBusy(false);
     }
   };
 
@@ -833,15 +859,30 @@ function PostsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Imagem de capa</Label>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full gap-2 sm:w-auto"
-                  disabled={!draft.title.trim()}
-                  onClick={generateCoverPrompt}
-                >
-                  <Sparkles className="size-4" /> Gerar Prompt Imagem de Capa
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full gap-2 sm:w-auto"
+                    disabled={!draft.title.trim()}
+                    onClick={generateCoverPrompt}
+                  >
+                    <Sparkles className="size-4" /> Gerar Prompt Imagem de Capa
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full gap-2 sm:w-auto"
+                    disabled={!draft.title.trim() || coverBusy}
+                    onClick={generateCoverWithAI}
+                  >
+                    {coverBusy ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    Gerar Imagem com IA
+                  </Button>
+                </div>
                 <ImagePicker
                   value={draft.cover}
                   label="capa"
