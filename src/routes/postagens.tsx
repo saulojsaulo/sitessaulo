@@ -395,6 +395,27 @@ function PostsPage() {
     }
   };
 
+  const generateCoverWithAI = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de gerar a imagem");
+      return;
+    }
+    const prompt = buildCoverImagePrompt(title, catName(draft.categoryId));
+    setCoverBusy(true);
+    try {
+      const { dataUrl } = await makeCoverImage({ data: { prompt } });
+      setDraft((d) => (d ? { ...d, cover: dataUrl } : d));
+      if (editing) updatePost(editing.id, { cover: dataUrl });
+      toast.success("Imagem de capa gerada!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível gerar a imagem");
+    } finally {
+      setCoverBusy(false);
+    }
+  };
+
   const generateStructurePrompt = async () => {
     if (!draft) return;
     const title = draft.title.trim();
