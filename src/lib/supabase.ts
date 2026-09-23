@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Projeto Supabase externo (chave publishable — segura no cliente).
-export const SUPABASE_URL = "https://guinszwyqbkalenlfrmz.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_LZz2NhHB-1r22wx5caX04A_QXcjDb3c";
+export const SUPABASE_URL = "https://rvuobfbobldfoqfjcphr.supabase.co";
+export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_18MlzAl87-WoClOnoOJhWA_5ScAxyoj";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
