@@ -127,6 +127,10 @@ Lembre-se:
 /** Número mínimo de palavras exigido no artigo após a revisão de coesão. */
 export const MIN_ARTICLE_WORDS = 2000;
 
+/** Faixa ideal para a revisão final enviada ao WordPress. */
+export const FINAL_REVIEW_MIN_WORDS = 800;
+export const FINAL_REVIEW_MAX_WORDS = 1200;
+
 export const countWords = (text: string) =>
   text
     .replace(/<[^>]*>/g, " ")
@@ -207,21 +211,30 @@ export function buildReviewPrompt(article: string): string {
 
 3. **Qualidade editorial**
    - Melhore a fluidez, elimine repetições e redundâncias.
-   - Garanta introdução envolvente, desenvolvimento estruturado e conclusão com fechamento claro (CTA suave, sem apelação).
-   - Mantenha linguagem natural e humana — nada de texto robótico ou genérico.
+    - Garanta introdução envolvente, desenvolvimento objetivo e conclusão com fechamento claro (CTA suave, sem apelação).
+    - HUMANIZE o texto para que ele pareça escrito por uma pessoa experiente: varie o ritmo das frases, use transições naturais, inclua observações práticas e evite padrões previsíveis de IA.
+    - Remova frases genéricas, excesso de explicações óbvias, repetições de palavras-chave e qualquer tom robótico, enciclopédico ou artificial.
+    - Prefira exemplos simples e realistas quando eles ajudarem o leitor, sem inventar estatísticas, fontes, pesquisas ou casos reais.
 
 4. **Estrutura obrigatória para WordPress (HTML)**
    - Use exclusivamente tags HTML válidas, sem markdown (nada de **, ##, - etc.).
    - Não repita um <h1> no corpo: use <h2> para as seções principais, <h3> para subseções e <p> para parágrafos.
-   - Inclua ao menos 1 tabela em <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table> sempre que fizer sentido comparar dados, opções ou características.
+    - Reduza a quantidade de títulos e subtítulos: use apenas os <h2> necessários para organizar o conteúdo e só use <h3> quando houver uma subdivisão realmente útil.
+    - Evite fragmentar o texto em muitas seções curtas; prefira blocos bem desenvolvidos e fáceis de ler.
+    - Inclua tabela em <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table> apenas quando ela realmente melhorar a compreensão. Não force tabela em artigos simples.
    - Listas em <ul>/<li> ou <ol>/<li> quando aplicável.
    - Não use <script>, <style> ou classes CSS.
 
 5. **Tamanho**
-   - O artigo final deve ter no mínimo ${MIN_ARTICLE_WORDS} palavras. Se o original for menor, expanda as seções existentes com informações relevantes, exemplos práticos, FAQ ou conclusão mais completa — sem enrolação nem repetição artificial.
+    - O artigo final deve ter entre ${FINAL_REVIEW_MIN_WORDS} e ${FINAL_REVIEW_MAX_WORDS} palavras.
+    - Se o original estiver longo demais, corte repetições, explicações redundantes, subtítulos desnecessários e trechos que não ajudam diretamente o leitor.
+    - Se estiver curto demais, aprofunde apenas os pontos essenciais com contexto prático, sem enrolação e sem criar seções artificiais.
 
 6. **SEO básico**
    - Verifique se a palavra-chave principal aparece no primeiro parágrafo e em pelo menos um <h2>.
+    - Otimize para rankeamento no Google e em respostas de IA: responda claramente à intenção de busca, use termos relacionados de forma natural, cubra dúvidas essenciais e deixe a resposta principal fácil de identificar.
+    - Não faça keyword stuffing. As palavras-chave devem aparecer com naturalidade, como parte do raciocínio do texto.
+    - Priorize utilidade, clareza, precisão e experiência prática percebida, seguindo o conceito de conteúdo útil do Google.
    - Sugira, na seção META, um meta title (até 60 caracteres) e uma meta description (até 155 caracteres) otimizados.
 
 7. **Aderência ao tema**
