@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { parseWorkspace } from "@/lib/content-workspace";
+import type { MlProduct } from "@/lib/ml";
 import { articleToHtml, slugify, type WpConnectionRow } from "@/lib/wp-types";
 import { createWpTerm, publishWpPost } from "@/lib/wp.functions";
 import {
@@ -248,6 +249,7 @@ export function WpPublishPanel({
   blogName,
   categoryName,
   onPublished,
+  ml,
 }: {
   postId: string | null;
   title: string;
@@ -256,6 +258,8 @@ export function WpPublishPanel({
   tags: string[];
   blogName?: string | undefined;
   categoryName?: string | undefined;
+  /** Postagens ML: dados do card do Mercado Livre inserido no meio do artigo. */
+  ml?: MlProduct | undefined;
   /** Avisa quando o envio deu certo, com o status escolhido no WordPress. */
   onPublished?: ((info: { wpStatus: WpStatus; date?: string | undefined }) => void) | undefined;
 }) {
