@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -66,35 +66,6 @@ import { supabase } from "@/lib/supabase";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCoverImageFn } from "@/lib/image.functions";
 
-export const Route = createFileRoute("/postagens")({
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): { status?: string; blog?: string; categoria?: string; post?: string } => {
-    const out: { status?: string; blog?: string; categoria?: string; post?: string } = {};
-    if (typeof search["status"] === "string") out.status = search["status"];
-    if (typeof search["blog"] === "string") out.blog = search["blog"];
-    if (typeof search["categoria"] === "string") out.categoria = search["categoria"];
-    if (typeof search["post"] === "string") out.post = search["post"];
-    return out;
-  },
-
-  head: () => ({
-    meta: [
-      { title: "Postagens — PostFlow" },
-      {
-        name: "description",
-        content: "Cadastre postagens com editor rico, tags, capa, status e data de publicação.",
-      },
-      { property: "og:title", content: "Postagens — PostFlow" },
-      {
-        property: "og:description",
-        content: "Liste, filtre e ordene todas as postagens dos seus blogs.",
-      },
-    ],
-  }),
-  component: PostsPage,
-});
-
 interface Draft {
   blogId: string;
   categoryId?: string | undefined;
@@ -152,9 +123,24 @@ function PostCover({ id, title, cover }: { id: string; title: string; cover?: st
   );
 }
 
-function PostsPage() {
+export interface PostsSearch {
+  status?: string;
+  blog?: string;
+  categoria?: string;
+  post?: string;
+}
 
-  const search = Route.useSearch();
+export const validatePostsSearch = (search: Record<string, unknown>): PostsSearch => {
+  const out: PostsSearch = {};
+  if (typeof search["status"] === "string") out.status = search["status"];
+  if (typeof search["blog"] === "string") out.blog = search["blog"];
+  if (typeof search["categoria"] === "string") out.categoria = search["categoria"];
+  if (typeof search["post"] === "string") out.post = search["post"];
+  return out;
+};
+
+export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
+  const search = useSearch({ strict: false }) as PostsSearch;
   const {
     blogs,
     categories,

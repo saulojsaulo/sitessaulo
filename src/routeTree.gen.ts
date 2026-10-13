@@ -16,7 +16,6 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
 import { Route as ConexoesRouteImport } from './routes/conexoes'
-import { Route as PostagensRouteImport } from './routes/postagens'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,11 +52,6 @@ const ConexoesRoute = ConexoesRouteImport.update({
   path: '/conexoes',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PostagensRoute = PostagensRouteImport.update({
-  id: '/postagens',
-  path: '/postagens',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -67,7 +61,6 @@ export interface FileRoutesByFullPath {
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
-  '/postagens': typeof PostagensRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +70,6 @@ export interface FileRoutesByTo {
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
-  '/postagens': typeof PostagensRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +80,6 @@ export interface FileRoutesById {
   '/blogs': typeof BlogsRoute
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
-  '/postagens': typeof PostagensRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +91,6 @@ export interface FileRouteTypes {
     | '/blogs'
     | '/categorias'
     | '/conexoes'
-    | '/postagens'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +100,6 @@ export interface FileRouteTypes {
     | '/blogs'
     | '/categorias'
     | '/conexoes'
-    | '/postagens'
   id:
     | '__root__'
     | '/'
@@ -120,7 +109,6 @@ export interface FileRouteTypes {
     | '/blogs'
     | '/categorias'
     | '/conexoes'
-    | '/postagens'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,7 +119,6 @@ export interface RootRouteChildren {
   BlogsRoute: typeof BlogsRoute
   CategoriasRoute: typeof CategoriasRoute
   ConexoesRoute: typeof ConexoesRoute
-  PostagensRoute: typeof PostagensRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,13 +172,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConexoesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/postagens': {
-      id: '/postagens'
-      path: '/postagens'
-      fullPath: '/postagens'
-      preLoaderRoute: typeof PostagensRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -203,7 +183,6 @@ const rootRouteChildren: RootRouteChildren = {
   BlogsRoute: BlogsRoute,
   CategoriasRoute: CategoriasRoute,
   ConexoesRoute: ConexoesRoute,
-  PostagensRoute: PostagensRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
