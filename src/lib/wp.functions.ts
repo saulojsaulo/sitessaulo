@@ -100,6 +100,17 @@ export const publishWpPost = createServerFn({ method: "POST" })
         authorId: z.number().int().positive().optional(),
         cover: z.string().max(12_000_000).optional(),
         coverFileName: z.string().max(120).optional(),
+        mlCard: z
+          .object({
+            title: z.string().max(300),
+            price: z.string().max(40),
+            oldPrice: z.string().max(40),
+            affiliateUrl: z.string().max(2000),
+            image: z.string().max(12_000_000),
+            freeShipping: z.boolean(),
+            features: z.string().max(20_000),
+          })
+          .optional(),
       })
       .parse(input),
   )

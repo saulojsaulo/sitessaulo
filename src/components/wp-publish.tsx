@@ -305,6 +305,7 @@ export function WpPublishPanel({
   // O que vai para o WordPress é o "Artigo Publicação" (revisado pelo ChatGPT).
   const ws = parseWorkspace(content);
   const article = (ws.published.trim() || ws.article).trim();
+  const mlCard = ml ?? ws.ml;
 
   // O conteúdo em memória pode estar desatualizado (pipeline grava no servidor).
   const freshArticle = async () => {
@@ -380,6 +381,7 @@ export function WpPublishPanel({
             ...(coverImage
               ? { cover: coverImage, coverFileName: slugify(title) || "capa" }
               : {}),
+            ...(mlCard ? { mlCard, coverFileName: slugify(title) || "capa" } : {}),
           },
         });
 
