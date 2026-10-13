@@ -3,6 +3,8 @@
  * É serializado dentro do próprio campo `content` da postagem, num comentário
  * invisível no final do texto, para persistir sem alterar o schema do banco.
  */
+import type { MlProduct } from "./ml";
+
 export interface Section {
   id: string;
   /** Comando + título + subtítulos (o prompt que vai para a IA). */
@@ -19,6 +21,8 @@ export interface Workspace {
   manual: boolean;
   /** Artigo revisado/formatado em HTML pela IA — é o que vai para o WordPress. */
   published: string;
+  /** Presente apenas em Postagens ML (afiliado Mercado Livre). */
+  ml?: MlProduct | undefined;
 }
 
 const MARKER_START = "<!--PF_WS:";
@@ -78,6 +82,7 @@ export function parseWorkspace(content: string): Workspace {
       article,
       manual: Boolean(parsed.manual),
       published: typeof parsed.published === "string" ? parsed.published : "",
+      ...(parsed.ml && typeof parsed.ml === "object" ? { ml: parsed.ml } : {}),
     };
   } catch {
     return { ...emptyWorkspace, article, manual: article.trim() !== "" };
@@ -91,10 +96,11 @@ export function serializeWorkspace(ws: Workspace): string {
       sections: ws.sections,
       manual: ws.manual,
       published: ws.published,
+      ...(ws.ml ? { ml: ws.ml } : {}),
     }),
   );
   const hasState =
-    ws.raw.trim() !== "" || ws.sections.length > 0 || ws.manual || ws.published.trim() !== "";
+    ws.raw.trim() !== "" || ws.sections.length > 0 || ws.manual || ws.published.trim() !== "" || Boolean(ws.ml);
   if (!hasState) return ws.article;
   return `${ws.article}\n${MARKER_START}${meta}${MARKER_END}`;
 }
@@ -202,3 +208,10 @@ export function buildArticle(sections: Section[]): string {
     .filter((t) => t !== "")
     .join("\n\n");
 }
+
+/** true quando a postagem é do tipo "Postagens ML". */
+export const isMlContent = (content: string) => content.includes("%22ml%22%3A") && Boolean(parseWorkspace(content).ml);
+
+/** Grava os dados do produto ML dentro do conteúdo serializado. */
+export const withMl = (content: string, ml: MlProduct) =>
+  serializeWorkspace({ ...parseWorkspace(content), ml });

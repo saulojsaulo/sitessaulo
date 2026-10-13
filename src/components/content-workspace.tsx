@@ -48,6 +48,10 @@ import {
 export interface WorkspaceApi {
   /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
   setRaw: (text: string) => void;
+  /** Substitui o "Artigo Publicação" e navega até ele. */
+  setPublished: (html: string) => void;
+  /** Lê o estado atual (serializado) do workspace. */
+  getContent: () => string;
 }
 
 interface Props {
@@ -135,6 +139,11 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
         commit({ ...wsRef.current, raw: text });
         setTab("bruta");
       },
+      setPublished: (html: string) => {
+        commit({ ...wsRef.current, published: html });
+        setTab("publicacao");
+      },
+      getContent: () => serializeWorkspace(wsRef.current),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onReady]);

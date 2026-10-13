@@ -1,3 +1,4 @@
+import { buildMlCardBlock, insertMlCard, type MlProduct } from "./ml";
 /** Chamadas à REST API do WordPress (Application Passwords / Basic Auth). Só roda no servidor. */
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./supabase";
@@ -234,9 +235,18 @@ async function uploadMedia(
   fileBase: string,
   altText: string,
 ): Promise<number> {
+  return (await uploadMediaFull(creds, dataUrl, fileBase, altText)).id;
+}
+
+async function uploadMediaFull(
+  creds: Creds,
+  dataUrl: string,
+  fileBase: string,
+  altText: string,
+): Promise<{ id: number; source_url?: string }> {
   const { bytes, mime } = dataUrlToBytes(dataUrl);
   const ext = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-  const media = await wpFetch<{ id: number }>(
+  const media = await wpFetch<{ id: number; source_url?: string }>(
     creds,
     "/media",
     {
@@ -254,7 +264,7 @@ async function uploadMedia(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ alt_text: altText, title: altText }),
   }).catch(() => null);
-  return media.id;
+  return media;
 }
 
 export interface PublishInput {
@@ -271,6 +281,8 @@ export interface PublishInput {
   authorId?: number | undefined;
   cover?: string | undefined;
   coverFileName?: string | undefined;
+  /** Postagens ML: card do plugin "Bloco Gutenberg - Card Mercado Livre". */
+  mlCard?: MlProduct | undefined;
 }
 
 const outStatus: Record<PublishInput["status"], WpPublicationStatus> = {
@@ -298,9 +310,27 @@ export async function publishToWordPress(input: PublishInput): Promise<WpPublish
       );
     }
 
+    let content = input.content;
+    if (input.mlCard) {
+      const ml = input.mlCard;
+      let imageUrl = ml.image.startsWith("data:") ? "" : ml.image;
+      let imageId = 0;
+      if (ml.image.startsWith("data:")) {
+        const media = await uploadMediaFull(
+          creds,
+          ml.image,
+          `${input.coverFileName || "produto"}-produto`,
+          ml.title || input.title,
+        );
+        imageId = media.id;
+        imageUrl = media.source_url ?? "";
+      }
+      content = insertMlCard(content, buildMlCardBlock(ml, imageUrl, imageId));
+    }
+
     const body: Record<string, unknown> = {
       title: input.title,
-      content: input.content,
+      content,
       status: input.status,
     };
     if (input.status === "future") {

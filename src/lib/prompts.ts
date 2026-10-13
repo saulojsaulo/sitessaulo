@@ -279,3 +279,99 @@ export function parseReviewOutput(text: string): { article: string; meta: string
     meta: (meta?.[1] ?? "").trim(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Postagens ML (afiliado Mercado Livre) — "Criar com IA"
+// ---------------------------------------------------------------------------
+
+export const ML_MIN_WORDS = 600;
+export const ML_MAX_WORDS = 800;
+
+/** System das Postagens ML: regras base + papel de editor-chefe. */
+export const ML_SYSTEM_PROMPT = `${SYSTEM_PROMPT}
+
+${REVIEW_SYSTEM_PROMPT}`;
+
+export interface MlPromptProduct {
+  title: string;
+  price: string;
+  oldPrice: string;
+  freeShipping: boolean;
+  features: string;
+}
+
+/**
+ * Gera em uma única etapa o artigo final (HTML) de uma Postagem ML, aplicando
+ * as mesmas regras de estrutura, seções, coesão e revisão final deste arquivo.
+ */
+export function buildMlArticlePrompt(
+  title: string,
+  product: MlPromptProduct,
+  ctx: SiteContext = {},
+): string {
+  const niche = ctx.niche?.trim();
+  const features = product.features.trim() || "(não informadas — use apenas o que o nome do produto permite afirmar com segurança)";
+  return `Escreva um artigo completo para o blog${niche ? ` "${niche}"` : ""} com o título "${title}". O artigo é sobre um produto vendido no Mercado Livre e será publicado com um link de afiliado (o card do produto é inserido automaticamente pelo sistema).
+
+## DADOS DO PRODUTO (use como fonte principal — não invente especificações)
+
+- Nome do produto: ${product.title.trim() || title}
+- Preço atual: ${product.price ? `R$ ${product.price}` : "não informado"}
+- Preço antigo: ${product.oldPrice ? `R$ ${product.oldPrice}` : "não informado"}
+- Frete grátis: ${product.freeShipping ? "sim" : "não informado"}
+- Descrição e características:
+${features}
+
+## PLANEJAMENTO (siga as regras de estrutura)
+
+- Antes de escrever, defina mentalmente a intenção de busca de quem procura por este produto e organize o texto em poucas seções (3 a 5 <h2>), do problema/uso do leitor até a decisão de compra.
+- Introdução direta ao problema ou necessidade do leitor que o produto resolve, sem frases genéricas.
+- Desenvolvimento: para que serve, principais características explicadas em linguagem simples (benefício prático de cada uma), para quem é indicado e para quem não é, cuidados de uso e dicas de escolha (tamanho, modelo, compatibilidade) quando fizer sentido.
+- Inclua um pequeno FAQ (2 a 3 perguntas reais, com verbo) somente se couber no limite de palavras.
+- Conclusão curta e específica, com CTA suave para conferir a oferta (sem apelação, sem urgência falsa).
+
+## REGRAS DE ESCRITA (iguais às seções e à coesão)
+
+- Mantenha-se estritamente no tema do produto e do título. Nada de assuntos paralelos.
+- Coerência total com os dados do produto: NUNCA invente medidas, materiais, garantias, avaliações, número de vendas, certificações ou comparações com marcas. Se um dado não foi informado, não afirme.
+- Não cite o preço exato no texto (ele muda e já aparece no card); pode falar em "bom custo-benefício" apenas se fizer sentido, sem prometer.
+- Não invente estatísticas, estudos, depoimentos ou casos reais; use exemplos hipotéticos simples quando ajudarem.
+- Não use transições genéricas no início dos parágrafos, não repita frases e não inclua dicas de SEO no texto.
+- Escreva como alguém que entende do produto: frases com ritmo variado, observações práticas, tom humano e natural — o texto NÃO pode parecer gerado por IA.
+
+## POLÍTICAS (Google AdSense / conteúdo útil)
+
+- Tom neutro, informativo e family-friendly; sem clickbait, superlativos exagerados ou promessas irreais.
+- Sem alegações médicas, de saúde ou financeiras não verificadas.
+- Deixe claro, de forma natural, que o preço e a disponibilidade podem variar no site do vendedor.
+
+## SEO
+
+- Palavra-chave principal (derivada do título/produto) no primeiro parágrafo e em pelo menos um <h2>, sem keyword stuffing.
+- Responda claramente à intenção de busca para rankear no Google e em respostas de IA; use termos relacionados com naturalidade.
+- Sugira meta title (até 60 caracteres) e meta description (até 155 caracteres).
+
+## ESTRUTURA HTML PARA WORDPRESS
+
+- Apenas <h2>, <h3> (só se realmente necessário), <p>, <ul>/<ol>/<li>, <strong>. Sem markdown, sem <h1>, sem <script>, <style> ou classes CSS.
+- Insira EXATAMENTE UMA VEZ, em uma linha própria, no MEIO do artigo (depois de apresentar o produto e antes da conclusão, nunca logo após um título), o marcador:
+${"<!-- CARD_MERCADO_LIVRE -->"}
+  Esse marcador será substituído pelo card do produto com o link de afiliado. Não escreva links nem botões no texto.
+
+## TAMANHO
+
+- O artigo deve ter entre ${ML_MIN_WORDS} e ${ML_MAX_WORDS} palavras. Nem mais, nem menos.
+
+## FORMATO DA RESPOSTA (OBRIGATÓRIO)
+
+Responda APENAS com o seguinte, sem nenhum comentário fora dessas seções:
+
+[ARTIGO]
+(HTML do artigo, com o marcador do card no meio)
+[/ARTIGO]
+
+[META]
+Título SEO: ...
+Meta description: ...
+[/META]`;
+}
