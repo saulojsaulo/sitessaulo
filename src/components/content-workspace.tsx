@@ -141,7 +141,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
       },
       setPublished: (html: string) => {
         commit({ ...wsRef.current, published: html });
-        setTab(PUBLISHED_TAB);
+        setTab("publicacao");
       },
       getContent: () => serializeWorkspace(wsRef.current),
     });
