@@ -50,7 +50,16 @@ import { BulkUploadPosts } from "@/components/bulk-upload";
 import { EmptyState, PageHeader, StatusBadge, TagChip } from "@/components/ui-bits";
 import { ViewsBadge } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
-import { buildStructurePrompt } from "@/lib/prompts";
+import {
+  buildMlArticlePrompt,
+  buildStructurePrompt,
+  ML_SYSTEM_PROMPT,
+  parseReviewOutput,
+} from "@/lib/prompts";
+import { isMlContent, parseWorkspace, withMl } from "@/lib/content-workspace";
+import { emptyMl, type MlProduct } from "@/lib/ml";
+import { MlProductForm } from "@/components/ml-product-form";
+import { Copy } from "lucide-react";
 import {
   daysAgo,
   iso,
@@ -162,6 +171,17 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const wsApi = useRef<WorkspaceApi | null>(null);
+  const [ml, setMlState] = useState<MlProduct>(emptyMl);
+  const mlRef = useRef(ml);
+  const setMl = (v: MlProduct) => {
+    mlRef.current = v;
+    setMlState(v);
+  };
+  /** Só as postagens do tipo desta aba (normais ou ML). */
+  const scoped = useMemo(
+    () => posts.filter((p) => isMlContent(p.content) === mlMode),
+    [posts, mlMode],
+  );
 
 
 
@@ -224,7 +244,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = posts.filter((p) => {
+    const list = scoped.filter((p) => {
       if (blogFilter !== "all" && p.blogId !== blogFilter) return false;
       if (catFilter === "none") {
         if (p.categoryId) return false;
@@ -283,7 +303,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
     }
     return rotated;
   }, [
-    posts,
+    scoped,
     blogFilter,
     catFilter,
     statusFilter,
@@ -305,6 +325,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
       return;
     }
     setEditing(null);
+    setMl(emptyMl());
     setDraft({
       blogId: activeBlog.id,
       title: "",
@@ -318,6 +339,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
 
   const startEdit = (p: Post) => {
     setEditing(p);
+    setMl(parseWorkspace(p.content).ml ?? emptyMl());
     setDraft({
       blogId: p.blogId,
       categoryId: p.categoryId,
@@ -358,11 +380,12 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
       toast.error("Informe o título da postagem");
       return;
     }
+    const payload = mlMode ? { ...draft, content: withMl(draft.content, mlRef.current) } : draft;
     if (editing) {
-      updatePost(editing.id, draft);
+      updatePost(editing.id, payload);
       toast.success("Postagem atualizada");
     } else {
-      addPost(draft);
+      addPost(payload);
       toast.success("Postagem criada");
     }
     setOpen(false);
@@ -458,6 +481,54 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
     }
   };
 
+  const mlPrompt = () =>
+    draft ? buildMlArticlePrompt(draft.title.trim(), ml, siteCtx(draft.blogId)) : "";
+
+  const copyMlPrompt = async () => {
+    if (!draft?.title.trim()) {
+      toast.error("Preencha o título antes de gerar o prompt");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${ML_SYSTEM_PROMPT}\n\n---\n\n${mlPrompt()}`);
+      toast.success("Prompt copiado!");
+    } catch {
+      toast.error("Não foi possível copiar o prompt");
+    }
+  };
+
+  const createMlWithAI = async () => {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) {
+      toast.error("Preencha o título antes de criar com IA");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const text = await askGemini(mlPrompt(), {
+        system: ML_SYSTEM_PROMPT,
+        kind: "artigo_ml",
+        postId: editing?.id ?? null,
+        postTitle: title,
+      });
+      const { article } = parseReviewOutput(text ?? "");
+      if (!article) throw new Error("A IA não retornou conteúdo");
+      wsApi.current?.setPublished(article);
+      const content = withMl(wsApi.current?.getContent() ?? draft.content, mlRef.current);
+      setDraft((d) => (d ? { ...d, content, status: "artigo_completo" } : d));
+      if (editing) {
+        updatePost(editing.id, { content, status: "artigo_completo" });
+        setEditing({ ...editing, content, status: "artigo_completo" });
+      }
+      toast.success("Artigo criado com IA! Veja em “Artigo Publicação”.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao criar com IA");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const toggleSelected = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
@@ -476,8 +547,8 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
   return (
     <>
       <PageHeader
-        title="Postagens"
-        subtitle={`${filtered.length} de ${posts.length} postagens`}
+        title={mlMode ? "Postagens ML" : "Postagens"}
+        subtitle={`${filtered.length} de ${scoped.length} postagens${mlMode ? " de afiliado Mercado Livre" : ""}`}
         action={
           <div className="flex flex-wrap gap-2">
             <Button onClick={startCreate} className="gap-2">
@@ -621,7 +692,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
         </div>
       </div>
 
-      {posts.length === 0 ? (
+      {scoped.length === 0 ? (
         <EmptyState
           icon={<FileText className="size-7" />}
           title="Nenhuma postagem cadastrada"
@@ -734,7 +805,10 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar postagem" : "Nova postagem"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Editar postagem" : "Nova postagem"}
+              {mlMode ? " ML" : ""}
+            </DialogTitle>
             <DialogDescription>
               Preencha o conteúdo e os metadados da publicação.
             </DialogDescription>
@@ -749,6 +823,32 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="Como escrever melhores títulos"
                 />
+                {mlMode ? (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2"
+                    disabled={!draft.title.trim()}
+                    onClick={() => void copyMlPrompt()}
+                  >
+                    <Copy className="size-4" /> Copiar Prompt Criar com IA
+                  </Button>
+                  <Button
+                    type="button"
+                    className="gap-2"
+                    disabled={!draft.title.trim() || aiLoading}
+                    onClick={() => void createMlWithAI()}
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    Criar com IA
+                  </Button>
+                </div>
+                ) : (
                 <div className="mt-1 flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -773,6 +873,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                     Gerar com IA
                   </Button>
                 </div>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -876,6 +977,13 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   onChange={(cover) => setDraft({ ...draft, cover })}
                 />
               </div>
+              {mlMode && (
+                <MlProductForm
+                  value={ml}
+                  onChange={setMl}
+                  fileName={draft.title}
+                />
+              )}
               <div className="space-y-2">
                 <Label>Palavras-chave</Label>
                 <TagInput
@@ -896,6 +1004,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   categoryName={
                     draft.categoryId ? catName(draft.categoryId) : undefined
                   }
+                  {...(mlMode ? { ml } : {})}
                 />
               </div>
               <div className="space-y-2">
@@ -912,7 +1021,11 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   cover={draft.cover}
                   tags={draft.tags}
                   value={draft.content}
-                  onChange={(content) => setDraft((d) => (d ? { ...d, content } : d))}
+                  onChange={(content) =>
+                    setDraft((d) =>
+                      d ? { ...d, content: mlMode ? withMl(content, mlRef.current) : content } : d,
+                    )
+                  }
                   onStatusChange={(status) => {
                     setDraft((d) => (d ? { ...d, status } : d));
                     if (editing?.id) updatePost(editing.id, { status });
