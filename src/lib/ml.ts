@@ -120,7 +120,7 @@ export function buildMlCardBlock(p: MlProduct, imageUrl: string, imageId = 0): s
 /** Coloca o card no marcador ou, se não houver, no meio do artigo (entre blocos). */
 export function insertMlCard(html: string, block: string): string {
   if (html.includes(ML_CARD_MARKER)) return html.replace(ML_CARD_MARKER, block);
-  const re = /<\/(p|ul|ol|table|h[2-6])>/gi;
+  const re = /<\/(p|ul|ol|table)>/gi;
   const ends: number[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) ends.push(m.index + m[0].length);
