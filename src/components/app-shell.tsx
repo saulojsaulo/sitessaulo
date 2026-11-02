@@ -50,6 +50,7 @@ const items = [
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Postagens", url: "/postagens", icon: FileText },
   { title: "Postagens ML", url: "/postagens-ml", icon: ShoppingBag },
+  { title: "Afiliados ML", url: "/afiliados-ml", icon: ShoppingBag },
   { title: "Agendador", url: "/agendador", icon: CalendarCheck },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Conexões WP", url: "/conexoes", icon: Plug },
