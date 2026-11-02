@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AfiliadosMlRouteImport } from './routes/afiliados-ml'
 import { Route as AgendadasRouteImport } from './routes/agendadas'
 import { Route as AgendadorRouteImport } from './routes/agendador'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
@@ -23,6 +24,11 @@ import { Route as ApiPublicWpSyncRouteImport } from './routes/api/public/wp-sync
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AfiliadosMlRoute = AfiliadosMlRouteImport.update({
+  id: '/afiliados-ml',
+  path: '/afiliados-ml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgendadasRoute = AgendadasRouteImport.update({
@@ -73,6 +79,7 @@ const ApiPublicWpSyncRoute = ApiPublicWpSyncRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/afiliados-ml': typeof AfiliadosMlRoute
   '/agendadas': typeof AgendadasRoute
   '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/afiliados-ml': typeof AfiliadosMlRoute
   '/agendadas': typeof AgendadasRoute
   '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/afiliados-ml': typeof AfiliadosMlRoute
   '/agendadas': typeof AgendadasRoute
   '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/afiliados-ml'
     | '/agendadas'
     | '/agendador'
     | '/analytics'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/afiliados-ml'
     | '/agendadas'
     | '/agendador'
     | '/analytics'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/afiliados-ml'
     | '/agendadas'
     | '/agendador'
     | '/analytics'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AfiliadosMlRoute: typeof AfiliadosMlRoute
   AgendadasRoute: typeof AgendadasRoute
   AgendadorRoute: typeof AgendadorRoute
   AnalyticsRoute: typeof AnalyticsRoute
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/afiliados-ml': {
+      id: '/afiliados-ml'
+      path: '/afiliados-ml'
+      fullPath: '/afiliados-ml'
+      preLoaderRoute: typeof AfiliadosMlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agendadas': {
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AfiliadosMlRoute: AfiliadosMlRoute,
   AgendadasRoute: AgendadasRoute,
   AgendadorRoute: AgendadorRoute,
   AnalyticsRoute: AnalyticsRoute,
