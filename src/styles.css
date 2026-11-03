@@ -221,3 +221,47 @@
     color: var(--color-muted-foreground);
   }
 }
+
+/* Analytics "tech" surfaces */
+@utility tech-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 22%, var(--color-border));
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in oklab, var(--accent-c, var(--color-primary)) 14%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-card) 96%, var(--color-primary)), var(--color-card));
+  box-shadow: var(--shadow-soft), inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 6%, transparent);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--color-primary) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--color-primary) 7%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(180deg, black, transparent 85%);
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; height: 2px; width: 100%;
+    background: linear-gradient(90deg, transparent, var(--accent-c, var(--color-primary)), transparent);
+    opacity: .7;
+  }
+  &:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--accent-c, var(--color-primary)) 45%, var(--color-border));
+    box-shadow: 0 12px 32px -14px color-mix(in oklab, var(--accent-c, var(--color-primary)) 45%, transparent);
+  }
+}
+
+@keyframes tech-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@utility animate-tech-in {
+  animation: tech-in .5s cubic-bezier(.2,.7,.2,1) both;
+}
