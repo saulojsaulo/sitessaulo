@@ -454,7 +454,7 @@ export function MlMetricsTab() {
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
         <Table title="Por site" data={group((r) => r.site_id)} name={siteName} />
-        <Table title="Por produto" data={group((r) => r.product_id)} name={prodName} />
+        <Table title="Top 20 produtos (por cliques)" data={group((r) => r.product_id).sort((a, b) => b[1].c - a[1].c).slice(0, 20)} name={prodName} />
         <Table title="Por posição" data={group((r) => r.placement)} name={(k) => k} />
         <Table title="Por tipo de post" data={group((r) => r.post_type)} name={(k) => k} />
       </div>

@@ -18,7 +18,6 @@ import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CategoriasRouteImport } from './routes/categorias'
 import { Route as ConexoesRouteImport } from './routes/conexoes'
 import { Route as PostagensRouteImport } from './routes/postagens'
-import { Route as PostagensMlRouteImport } from './routes/postagens-ml'
 import { Route as ApiPublicWpSyncRouteImport } from './routes/api/public/wp-sync'
 
 const IndexRoute = IndexRouteImport.update({
@@ -66,11 +65,6 @@ const PostagensRoute = PostagensRouteImport.update({
   path: '/postagens',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PostagensMlRoute = PostagensMlRouteImport.update({
-  id: '/postagens-ml',
-  path: '/postagens-ml',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicWpSyncRoute = ApiPublicWpSyncRouteImport.update({
   id: '/api/public/wp-sync',
   path: '/api/public/wp-sync',
@@ -87,7 +81,6 @@ export interface FileRoutesByFullPath {
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
-  '/postagens-ml': typeof PostagensMlRoute
   '/api/public/wp-sync': typeof ApiPublicWpSyncRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +93,6 @@ export interface FileRoutesByTo {
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
-  '/postagens-ml': typeof PostagensMlRoute
   '/api/public/wp-sync': typeof ApiPublicWpSyncRoute
 }
 export interface FileRoutesById {
@@ -114,7 +106,6 @@ export interface FileRoutesById {
   '/categorias': typeof CategoriasRoute
   '/conexoes': typeof ConexoesRoute
   '/postagens': typeof PostagensRoute
-  '/postagens-ml': typeof PostagensMlRoute
   '/api/public/wp-sync': typeof ApiPublicWpSyncRoute
 }
 export interface FileRouteTypes {
@@ -129,7 +120,6 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/conexoes'
     | '/postagens'
-    | '/postagens-ml'
     | '/api/public/wp-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -142,7 +132,6 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/conexoes'
     | '/postagens'
-    | '/postagens-ml'
     | '/api/public/wp-sync'
   id:
     | '__root__'
@@ -155,7 +144,6 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/conexoes'
     | '/postagens'
-    | '/postagens-ml'
     | '/api/public/wp-sync'
   fileRoutesById: FileRoutesById
 }
@@ -169,7 +157,6 @@ export interface RootRouteChildren {
   CategoriasRoute: typeof CategoriasRoute
   ConexoesRoute: typeof ConexoesRoute
   PostagensRoute: typeof PostagensRoute
-  PostagensMlRoute: typeof PostagensMlRoute
   ApiPublicWpSyncRoute: typeof ApiPublicWpSyncRoute
 }
 
@@ -238,13 +225,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostagensRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/postagens-ml': {
-      id: '/postagens-ml'
-      path: '/postagens-ml'
-      fullPath: '/postagens-ml'
-      preLoaderRoute: typeof PostagensMlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/wp-sync': {
       id: '/api/public/wp-sync'
       path: '/api/public/wp-sync'
@@ -265,7 +245,6 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriasRoute: CategoriasRoute,
   ConexoesRoute: ConexoesRoute,
   PostagensRoute: PostagensRoute,
-  PostagensMlRoute: PostagensMlRoute,
   ApiPublicWpSyncRoute: ApiPublicWpSyncRoute,
 }
 export const routeTree = rootRouteImport
