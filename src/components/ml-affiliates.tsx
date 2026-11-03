@@ -59,12 +59,12 @@ export function MlSitesTab() {
   const [edit, setEdit] = useState<Partial<WpSite> | null>(null);
 
   const save = async () => {
-    if (!edit?.name?.trim()) return toast.error("Informe o nome");
+    if (!edit?.name?.trim()) return void toast.error("Informe o nome");
     const row = { name: edit.name.trim(), url: edit.url ?? "", webhook_url: edit.webhook_url ?? "" };
     const { error } = edit.id
       ? await mlDb.from("wp_sites").update(row).eq("id", edit.id)
       : await mlDb.from("wp_sites").insert(row);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     setEdit(null);
     toast.success("Site salvo");
     load();
@@ -186,8 +186,8 @@ export function MlProductsTab() {
   };
 
   const save = async () => {
-    if (!edit?.title?.trim()) return toast.error("Informe o título");
-    if (!edit.id && products.length >= ML_MAX_PRODUCTS) return toast.error("Limite de 50 produtos neste site");
+    if (!edit?.title?.trim()) return void toast.error("Informe o título");
+    if (!edit.id && products.length >= ML_MAX_PRODUCTS) return void toast.error("Limite de 50 produtos neste site");
     const row = {
       title: edit.title.trim(),
       image_url: edit.image_url ?? "",
@@ -201,7 +201,7 @@ export function MlProductsTab() {
     const { error } = edit.id
       ? await mlDb.from("wp_products").update(row).eq("id", edit.id)
       : await mlDb.from("wp_products").insert({ ...row, site_id: siteId });
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     setEdit(null);
     toast.success("Produto salvo");
     changed();
@@ -209,13 +209,13 @@ export function MlProductsTab() {
 
   const toggle = async (p: WpProduct) => {
     const { error } = await mlDb.from("wp_products").update({ active: !p.active }).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     changed();
   };
   const remove = async (id: string) => {
     if (!confirm("Excluir este produto?")) return;
     const { error } = await mlDb.from("wp_products").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     changed();
   };
 
@@ -224,20 +224,20 @@ export function MlProductsTab() {
     const path = `${siteId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, "_")}`;
     const { error } = await mlDb.storage.from("ml-products").upload(path, file, { contentType: file.type });
     setUploading(false);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     const url = mlDb.storage.from("ml-products").getPublicUrl(path).data.publicUrl;
     setEdit((e) => ({ ...e, image_url: url }));
   };
 
   const copyTo = async () => {
-    if (!target || target === siteId) return toast.error("Escolha outro site");
+    if (!target || target === siteId) return void toast.error("Escolha outro site");
     const { count } = await mlDb.from("wp_products").select("id", { count: "exact", head: true }).eq("site_id", target);
     const free = remainingSlots(count ?? 0);
     const items = products.filter((p) => selected.includes(p.id));
-    if (items.length > free) return toast.error(`O site de destino só tem espaço para ${free} produto(s)`);
+    if (items.length > free) return void toast.error(`O site de destino só tem espaço para ${free} produto(s)`);
     const rows = items.map(({ id: _id, created_at: _c, site_id: _s, ...rest }) => ({ ...rest, site_id: target }));
     const { error } = await mlDb.from("wp_products").insert(rows);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     toast.success(`${rows.length} produto(s) copiado(s)`);
     setCopyOpen(false);
     void notify(target);
@@ -454,7 +454,7 @@ export function MlMetricsTab() {
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
         <Table title="Por site" data={group((r) => r.site_id)} name={siteName} />
-        <Table title="Por produto" data={group((r) => r.product_id)} name={prodName} />
+        <Table title="Top 20 produtos (por cliques)" data={group((r) => r.product_id).sort((a, b) => b[1].c - a[1].c).slice(0, 20)} name={prodName} />
         <Table title="Por posição" data={group((r) => r.placement)} name={(k) => k} />
         <Table title="Por tipo de post" data={group((r) => r.post_type)} name={(k) => k} />
       </div>

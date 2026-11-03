@@ -69,11 +69,11 @@ function AfiliadosPage() {
           </p>
         </div>
       ) : (
-        <Tabs defaultValue="sites">
+        <Tabs defaultValue="metricas">
           <TabsList>
-            <TabsTrigger value="sites">Sites</TabsTrigger>
-            <TabsTrigger value="produtos">Produtos</TabsTrigger>
             <TabsTrigger value="metricas">Métricas</TabsTrigger>
+            <TabsTrigger value="produtos">Produtos</TabsTrigger>
+            <TabsTrigger value="sites">Sites</TabsTrigger>
           </TabsList>
           <TabsContent value="sites"><MlSitesTab /></TabsContent>
           <TabsContent value="produtos"><MlProductsTab /></TabsContent>
