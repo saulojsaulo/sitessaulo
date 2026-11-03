@@ -133,7 +133,7 @@ function KpiSkeleton({ count = 8 }: { count?: number }) {
 
 function BlockSkeleton({ height = 260 }: { height?: number }) {
   return (
-    <div className="surface p-4">
+    <div className="tech-card p-4">
       <Skeleton className="mb-4 h-4 w-40" />
       <Skeleton className="w-full" style={{ height }} />
     </div>
@@ -147,6 +147,7 @@ function Kpi({
   current,
   previous,
   hint,
+  accent,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -154,22 +155,40 @@ function Kpi({
   current?: number;
   previous?: number;
   hint?: string;
+  accent?: number;
 }) {
+  const color = CHART_COLORS[(accent ?? 0) % CHART_COLORS.length];
+  const pct =
+    current !== undefined && previous !== undefined && previous > 0
+      ? Math.max(4, Math.min(100, (current / Math.max(current, previous)) * 100))
+      : 100;
   return (
-    <div className="surface p-4">
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <span className="grid size-6 place-items-center rounded-md bg-primary/12 text-primary">
+    <div
+      className="tech-card animate-tech-in p-4"
+      style={{ ["--accent-c" as string]: color, animationDelay: `${(accent ?? 0) * 60}ms` }}
+    >
+      <div className="relative flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span
+          className="grid size-7 place-items-center rounded-lg"
+          style={{ color, background: `color-mix(in oklab, ${color} 16%, transparent)`, boxShadow: `0 0 16px -4px ${color}` }}
+        >
           {icon}
         </span>
         {label}
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
+      <div className="relative mt-3 flex items-baseline gap-2">
+        <p className="font-mono text-3xl font-bold tracking-tight tabular-nums">{value}</p>
         {current !== undefined && previous !== undefined ? (
           <Delta current={current} previous={previous} />
         ) : null}
       </div>
-      {hint ? <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p> : null}
+      <div className="relative mt-3 h-1 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full transition-[width] duration-700"
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, color-mix(in oklab, ${color} 40%, transparent), ${color})`, boxShadow: `0 0 10px ${color}` }}
+        />
+      </div>
+      {hint ? <p className="relative mt-2 text-[11px] text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
@@ -186,9 +205,12 @@ function Card({
   className?: string;
 }) {
   return (
-    <div className={`surface p-4 ${className}`}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
+    <div className={`tech-card animate-tech-in p-4 ${className}`}>
+      <div className="relative mb-3 flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <span className="size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
+          {title}
+        </h2>
         {action}
       </div>
       {children}
@@ -199,14 +221,14 @@ function Card({
 function KpiGrid({ kpis, prev }: { kpis: Ga4Kpis; prev: Ga4Kpis }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Kpi icon={<MousePointerClick className="size-3.5" />} label="Sessões" value={fmtInt(kpis.sessions)} current={kpis.sessions} previous={prev.sessions} />
-      <Kpi icon={<Users className="size-3.5" />} label="Usuários ativos" value={fmtInt(kpis.activeUsers)} current={kpis.activeUsers} previous={prev.activeUsers} />
-      <Kpi icon={<UserPlus className="size-3.5" />} label="Novos usuários" value={fmtInt(kpis.newUsers)} current={kpis.newUsers} previous={prev.newUsers} />
-      <Kpi icon={<Eye className="size-3.5" />} label="Visualizações" value={fmtInt(kpis.screenPageViews)} current={kpis.screenPageViews} previous={prev.screenPageViews} />
-      <Kpi icon={<BarChart3 className="size-3.5" />} label="Engajamento" value={fmtPct(kpis.engagementRate)} current={kpis.engagementRate} previous={prev.engagementRate} />
-      <Kpi icon={<TrendingDown className="size-3.5" />} label="Rejeição" value={fmtPct(kpis.bounceRate)} current={kpis.bounceRate} previous={prev.bounceRate} />
-      <Kpi icon={<Clock className="size-3.5" />} label="Duração média" value={fmtDur(kpis.averageSessionDuration)} current={kpis.averageSessionDuration} previous={prev.averageSessionDuration} />
-      <Kpi
+      <Kpi accent={0} icon={<MousePointerClick className="size-3.5" />} label="Sessões" value={fmtInt(kpis.sessions)} current={kpis.sessions} previous={prev.sessions} />
+      <Kpi accent={1} icon={<Users className="size-3.5" />} label="Usuários ativos" value={fmtInt(kpis.activeUsers)} current={kpis.activeUsers} previous={prev.activeUsers} />
+      <Kpi accent={2} icon={<UserPlus className="size-3.5" />} label="Novos usuários" value={fmtInt(kpis.newUsers)} current={kpis.newUsers} previous={prev.newUsers} />
+      <Kpi accent={3} icon={<Eye className="size-3.5" />} label="Visualizações" value={fmtInt(kpis.screenPageViews)} current={kpis.screenPageViews} previous={prev.screenPageViews} />
+      <Kpi accent={4} icon={<BarChart3 className="size-3.5" />} label="Engajamento" value={fmtPct(kpis.engagementRate)} current={kpis.engagementRate} previous={prev.engagementRate} />
+      <Kpi accent={5} icon={<TrendingDown className="size-3.5" />} label="Rejeição" value={fmtPct(kpis.bounceRate)} current={kpis.bounceRate} previous={prev.bounceRate} />
+      <Kpi accent={6} icon={<Clock className="size-3.5" />} label="Duração média" value={fmtDur(kpis.averageSessionDuration)} current={kpis.averageSessionDuration} previous={prev.averageSessionDuration} />
+      <Kpi accent={7}
         icon={<Sparkles className="size-3.5" />}
         label="Páginas por sessão"
         value={(kpis.sessions ? kpis.screenPageViews / kpis.sessions : 0).toFixed(2)}
@@ -235,12 +257,12 @@ function RealtimePanel({ propertyId }: { propertyId: string }) {
         <Skeleton className="h-[150px] w-full" />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[180px_1fr_260px]">
-          <div className="flex flex-col justify-center rounded-xl bg-accent/60 p-4">
+          <div className="relative flex flex-col justify-center rounded-xl border border-chart-2/30 bg-chart-2/10 p-4 shadow-[0_0_24px_-8px_var(--chart-2)]">
             <div className="flex items-center gap-2">
               <LiveDot users={data.activeUsers} label={false} />
               <span className="text-xs text-muted-foreground">usuários agora</span>
             </div>
-            <p className="mt-1 text-4xl font-bold tracking-tight">{fmtInt(data.activeUsers)}</p>
+            <p className="mt-1 font-mono text-5xl font-bold tracking-tight text-chart-2 tabular-nums">{fmtInt(data.activeUsers)}</p>
             <p className="mt-2 text-[11px] text-muted-foreground">
               {data.devices.map((d) => `${d.name}: ${d.activeUsers}`).join(" · ") || "sem sessões ativas"}
             </p>
@@ -258,7 +280,7 @@ function RealtimePanel({ propertyId }: { propertyId: string }) {
                 />
                 <YAxis allowDecimals={false} tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={28} />
                 <ReTooltip contentStyle={tooltipStyle} labelFormatter={(v) => `há ${v} min`} />
-                <Bar dataKey="activeUsers" name="Usuários" radius={[4, 4, 0, 0]} fill="var(--chart-2)" />
+                <Bar dataKey="activeUsers" name="Usuários" radius={[6, 6, 0, 0]} fillOpacity={0.85} fill="var(--chart-2)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -485,7 +507,7 @@ function SingleBlogView({
                 <XAxis dataKey="hour" tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" interval={1} />
                 <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={36} />
                 <ReTooltip contentStyle={tooltipStyle} labelFormatter={(v) => `${v}h`} />
-                <Bar dataKey="sessions" name="Sessões" radius={[4, 4, 0, 0]} fill="var(--chart-3)" />
+                <Bar dataKey="sessions" name="Sessões" radius={[6, 6, 0, 0]} fillOpacity={0.85} fill="var(--chart-3)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -499,7 +521,7 @@ function SingleBlogView({
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
                 <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={36} />
                 <ReTooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="sessions" name="Sessões" radius={[4, 4, 0, 0]} fill="var(--chart-5)" />
+                <Bar dataKey="sessions" name="Sessões" radius={[6, 6, 0, 0]} fillOpacity={0.85} fill="var(--chart-5)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
