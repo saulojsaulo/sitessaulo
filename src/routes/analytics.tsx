@@ -147,6 +147,7 @@ function Kpi({
   current,
   previous,
   hint,
+  accent,
 }: {
   icon: React.ReactNode;
   label: string;
