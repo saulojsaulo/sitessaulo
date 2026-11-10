@@ -22,10 +22,16 @@ export async function logAiUsage(rec: AiUsageRecord): Promise<void> {
   try {
     const { error } = await supabase.from("ai_usage").insert(rec);
     if (!error) return;
-    // Banco sem as colunas novas: grava o essencial.
+
+    // Tentativa 2: banco sem as colunas novas (cached/reasoning).
     const { cached_tokens: _c, reasoning_tokens: _r, ...basic } = rec;
     const retry = await supabase.from("ai_usage").insert(basic);
-    if (retry.error) console.warn("[ai_usage] falha ao registrar:", retry.error.message);
+    if (!retry.error) return;
+
+    // Tentativa 3: a coluna post_id ainda é `uuid` e o ID da postagem é texto. Grava sem o
+    // vínculo (o título continua em post_title) em vez de perder o registro de consumo.
+    const orphan = await supabase.from("ai_usage").insert({ ...basic, post_id: null });
+    if (orphan.error) console.warn("[ai_usage] falha ao registrar:", orphan.error.message);
   } catch (e) {
     console.warn("[ai_usage] falha ao registrar:", e instanceof Error ? e.message : e);
   }

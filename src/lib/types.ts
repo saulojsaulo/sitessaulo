@@ -59,16 +59,11 @@ export const BLOG_COLORS = [
 
 /** Domínios com painel WordPress disponível em /wp-admin */
 export const WP_ADMIN_DOMAINS = [
-  "ailovepdf.com.br",
-  "smallpdf.com.br",
-  "moneypress.com.br",
   "cnpjbusca.com",
-  "valorfipe.com",
-  "hinarioccb.com",
-  "bibliaonlinecompleta.com.br",
-  "curiosohein.com",
-  "issoeincrivel.com",
-  "todogostoso.com",
+  "dadosempresas.com",
+  "busqueicnpj.com",
+  "cnpjdireto.com",
+  "cnpjativo.com",
 ];
 
 const normalizeDomain = (url: string) =>

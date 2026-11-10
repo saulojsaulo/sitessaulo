@@ -234,3 +234,82 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
 }
+
+/* ------------------------------------------------------------------ */
+/* Tons semânticos: texto/fundo/borda com contraste legível em claro e */
+/* escuro (o texto é misturado com a cor de primeiro plano).           */
+/* ------------------------------------------------------------------ */
+@utility tone-primary {
+  color: color-mix(in oklab, var(--primary) 80%, var(--foreground));
+  background-color: color-mix(in oklab, var(--primary) 12%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 28%, transparent);
+}
+@utility tone-success {
+  color: color-mix(in oklab, var(--success) 58%, var(--foreground));
+  background-color: color-mix(in oklab, var(--success) 14%, transparent);
+  border-color: color-mix(in oklab, var(--success) 30%, transparent);
+}
+@utility tone-warning {
+  color: color-mix(in oklab, var(--warning) 52%, var(--foreground));
+  background-color: color-mix(in oklab, var(--warning) 16%, transparent);
+  border-color: color-mix(in oklab, var(--warning) 34%, transparent);
+}
+@utility tone-cyan {
+  color: color-mix(in oklab, var(--cyan) 52%, var(--foreground));
+  background-color: color-mix(in oklab, var(--cyan) 16%, transparent);
+  border-color: color-mix(in oklab, var(--cyan) 34%, transparent);
+}
+@utility tone-danger {
+  color: color-mix(in oklab, var(--destructive) 80%, var(--foreground));
+  background-color: color-mix(in oklab, var(--destructive) 12%, transparent);
+  border-color: color-mix(in oklab, var(--destructive) 28%, transparent);
+}
+@utility tone-pink {
+  color: color-mix(in oklab, var(--chart-5) 70%, var(--foreground));
+  background-color: color-mix(in oklab, var(--chart-5) 13%, transparent);
+  border-color: color-mix(in oklab, var(--chart-5) 30%, transparent);
+}
+
+/* Entrada suave de página */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@utility animate-page-in {
+  animation: page-in 0.28s ease-out both;
+}
+
+@layer base {
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 25%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Texto de destaque âmbar legível sobre fundo claro e escuro */
+@utility text-warning-strong {
+  color: color-mix(in oklab, var(--warning) 52%, var(--foreground));
+}

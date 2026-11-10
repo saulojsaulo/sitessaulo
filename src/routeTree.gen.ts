@@ -10,34 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AfiliadosMlRouteImport } from './routes/afiliados-ml'
-import { Route as AgendadasRouteImport } from './routes/agendadas'
-import { Route as AgendadorRouteImport } from './routes/agendador'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as BlogsRouteImport } from './routes/blogs'
-import { Route as CategoriasRouteImport } from './routes/categorias'
-import { Route as ConexoesRouteImport } from './routes/conexoes'
-import { Route as PostagensRouteImport } from './routes/postagens'
 import { Route as ApiPublicWpSyncRouteImport } from './routes/api/public/wp-sync'
+import { Route as ApiPublicSchedulerRunRouteImport } from './routes/api/public/scheduler/run'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AfiliadosMlRoute = AfiliadosMlRouteImport.update({
-  id: '/afiliados-ml',
-  path: '/afiliados-ml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgendadasRoute = AgendadasRouteImport.update({
-  id: '/agendadas',
-  path: '/agendadas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgendadorRoute = AgendadorRouteImport.update({
-  id: '/agendador',
-  path: '/agendador',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -50,114 +30,69 @@ const BlogsRoute = BlogsRouteImport.update({
   path: '/blogs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CategoriasRoute = CategoriasRouteImport.update({
-  id: '/categorias',
-  path: '/categorias',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConexoesRoute = ConexoesRouteImport.update({
-  id: '/conexoes',
-  path: '/conexoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PostagensRoute = PostagensRouteImport.update({
-  id: '/postagens',
-  path: '/postagens',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicWpSyncRoute = ApiPublicWpSyncRouteImport.update({
   id: '/api/public/wp-sync',
   path: '/api/public/wp-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSchedulerRunRoute = ApiPublicSchedulerRunRouteImport.update({
+  id: '/api/public/scheduler/run',
+  path: '/api/public/scheduler/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/afiliados-ml': typeof AfiliadosMlRoute
-  '/agendadas': typeof AgendadasRoute
-  '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
-  '/categorias': typeof CategoriasRoute
-  '/conexoes': typeof ConexoesRoute
-  '/postagens': typeof PostagensRoute
   '/api/public/wp-sync': typeof ApiPublicWpSyncRoute
+  '/api/public/scheduler/run': typeof ApiPublicSchedulerRunRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/afiliados-ml': typeof AfiliadosMlRoute
-  '/agendadas': typeof AgendadasRoute
-  '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
-  '/categorias': typeof CategoriasRoute
-  '/conexoes': typeof ConexoesRoute
-  '/postagens': typeof PostagensRoute
   '/api/public/wp-sync': typeof ApiPublicWpSyncRoute
+  '/api/public/scheduler/run': typeof ApiPublicSchedulerRunRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/afiliados-ml': typeof AfiliadosMlRoute
-  '/agendadas': typeof AgendadasRoute
-  '/agendador': typeof AgendadorRoute
   '/analytics': typeof AnalyticsRoute
   '/blogs': typeof BlogsRoute
-  '/categorias': typeof CategoriasRoute
-  '/conexoes': typeof ConexoesRoute
-  '/postagens': typeof PostagensRoute
   '/api/public/wp-sync': typeof ApiPublicWpSyncRoute
+  '/api/public/scheduler/run': typeof ApiPublicSchedulerRunRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/afiliados-ml'
-    | '/agendadas'
-    | '/agendador'
     | '/analytics'
     | '/blogs'
-    | '/categorias'
-    | '/conexoes'
-    | '/postagens'
     | '/api/public/wp-sync'
+    | '/api/public/scheduler/run'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/afiliados-ml'
-    | '/agendadas'
-    | '/agendador'
     | '/analytics'
     | '/blogs'
-    | '/categorias'
-    | '/conexoes'
-    | '/postagens'
     | '/api/public/wp-sync'
+    | '/api/public/scheduler/run'
   id:
     | '__root__'
     | '/'
-    | '/afiliados-ml'
-    | '/agendadas'
-    | '/agendador'
     | '/analytics'
     | '/blogs'
-    | '/categorias'
-    | '/conexoes'
-    | '/postagens'
     | '/api/public/wp-sync'
+    | '/api/public/scheduler/run'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AfiliadosMlRoute: typeof AfiliadosMlRoute
-  AgendadasRoute: typeof AgendadasRoute
-  AgendadorRoute: typeof AgendadorRoute
   AnalyticsRoute: typeof AnalyticsRoute
   BlogsRoute: typeof BlogsRoute
-  CategoriasRoute: typeof CategoriasRoute
-  ConexoesRoute: typeof ConexoesRoute
-  PostagensRoute: typeof PostagensRoute
   ApiPublicWpSyncRoute: typeof ApiPublicWpSyncRoute
+  ApiPublicSchedulerRunRoute: typeof ApiPublicSchedulerRunRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -167,27 +102,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/afiliados-ml': {
-      id: '/afiliados-ml'
-      path: '/afiliados-ml'
-      fullPath: '/afiliados-ml'
-      preLoaderRoute: typeof AfiliadosMlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agendadas': {
-      id: '/agendadas'
-      path: '/agendadas'
-      fullPath: '/agendadas'
-      preLoaderRoute: typeof AgendadasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agendador': {
-      id: '/agendador'
-      path: '/agendador'
-      fullPath: '/agendador'
-      preLoaderRoute: typeof AgendadorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -204,27 +118,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/categorias': {
-      id: '/categorias'
-      path: '/categorias'
-      fullPath: '/categorias'
-      preLoaderRoute: typeof CategoriasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/conexoes': {
-      id: '/conexoes'
-      path: '/conexoes'
-      fullPath: '/conexoes'
-      preLoaderRoute: typeof ConexoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/postagens': {
-      id: '/postagens'
-      path: '/postagens'
-      fullPath: '/postagens'
-      preLoaderRoute: typeof PostagensRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/wp-sync': {
       id: '/api/public/wp-sync'
       path: '/api/public/wp-sync'
@@ -232,20 +125,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWpSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/scheduler/run': {
+      id: '/api/public/scheduler/run'
+      path: '/api/public/scheduler/run'
+      fullPath: '/api/public/scheduler/run'
+      preLoaderRoute: typeof ApiPublicSchedulerRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AfiliadosMlRoute: AfiliadosMlRoute,
-  AgendadasRoute: AgendadasRoute,
-  AgendadorRoute: AgendadorRoute,
   AnalyticsRoute: AnalyticsRoute,
   BlogsRoute: BlogsRoute,
-  CategoriasRoute: CategoriasRoute,
-  ConexoesRoute: ConexoesRoute,
-  PostagensRoute: PostagensRoute,
   ApiPublicWpSyncRoute: ApiPublicWpSyncRoute,
+  ApiPublicSchedulerRunRoute: ApiPublicSchedulerRunRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

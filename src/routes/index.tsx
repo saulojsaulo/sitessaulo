@@ -1,31 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  FileText,
-  FolderTree,
-  Newspaper,
-  Plus,
-  Rocket,
-  CalendarClock,
-  PenLine,
-  ListTree,
-  CheckCircle2,
-  ChevronRight,
-} from "lucide-react";
+import { Newspaper, Plus, Rocket, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyState, PageHeader, StatusBadge } from "@/components/ui-bits";
+import { EmptyState, PageHeader } from "@/components/ui-bits";
 import { Delta, LiveDot, Sparkline } from "@/components/metric-bits";
 import { useStore } from "@/lib/store";
-import { useWpConnections, useWpPublications } from "@/lib/use-wp";
 import {
   daysAgo,
   fmtInt,
@@ -35,134 +14,26 @@ import {
   useBlogProperties,
   useGa4Summaries,
 } from "@/lib/use-ga4";
-import type { PostStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — PostFlow" },
-      {
-        name: "description",
-        content: "Visão geral dos seus blogs, postagens por status e distribuição por categoria.",
-      },
+      { name: "description", content: "Visão geral do tráfego dos sites CNPJ." },
       { property: "og:title", content: "Dashboard — PostFlow" },
-      {
-        property: "og:description",
-        content: "Acompanhe totais de blogs, postagens e o gráfico por categoria.",
-      },
+      { property: "og:description", content: "Tráfego e sites monitorados em um só lugar." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,
 });
 
-function StatCard({
-  label,
-  value,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  accent?: boolean;
-}) {
-  return (
-    <div className="surface flex items-center gap-4 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
-      <span
-        className={
-          accent
-            ? "gradient-brand grid size-11 place-items-center rounded-xl text-primary-foreground"
-            : "grid size-11 place-items-center rounded-xl bg-accent text-accent-foreground"
-        }
-      >
-        {icon}
-      </span>
-      <div>
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
-      </div>
-    </div>
-  );
-}
-
-/** Painel multi-blog: publicados / agendados / rascunhos por site WordPress. */
-function WpOverview() {
-  const connections = useWpConnections();
-  const publications = useWpPublications();
-  const conns = connections.data ?? [];
-  const pubs = publications.data ?? [];
-
-  if (conns.length === 0)
-    return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
-        Nenhum site WordPress conectado ainda.
-      </p>
-    );
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {conns.map((c) => {
-        const list = pubs.filter((p) => p.connection_id === c.id);
-        const n = (s: string) => list.filter((p) => p.status === s).length;
-        return (
-          <Link
-            key={c.id}
-            to="/agendadas"
-            className="rounded-lg border p-3 transition-colors hover:bg-accent"
-          >
-            <div className="truncate text-sm font-semibold">{c.name}</div>
-            <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="text-success">{n("publicado")} publicados</span>
-              <span className="text-warning">{n("agendado")} agendados</span>
-              <span>{n("rascunho")} rascunhos</span>
-              {n("falhou") > 0 && <span className="text-destructive">{n("falhou")} falhas</span>}
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 function Dashboard() {
-  const { blogs, categories, posts, hydrated } = useStore();
-
-  const byStatus = useMemo(() => {
-    const acc: Record<PostStatus, number> = {
-      rascunho: 0,
-      estrutura: 0,
-      sessoes_completas: 0,
-      aguardando_revisao: 0,
-      artigo_completo: 0,
-      agendado: 0,
-      publicado: 0,
-    };
-
-    for (const p of posts) acc[p.status] += 1;
-    return acc;
-  }, [posts]);
-
-  const chartData = useMemo(
-    () =>
-      categories
-        .map((c) => ({
-          name: c.name.length > 12 ? `${c.name.slice(0, 12)}…` : c.name,
-          total: posts.filter((p) => p.categoryId === c.id).length,
-        }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 8),
-    [categories, posts],
-  );
-
-  const recent = useMemo(
-    () => [...posts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
-    [posts],
-  );
+  const { blogs, hydrated } = useStore();
 
   const gaProps = useBlogProperties();
-  const gaIds = (gaProps.data ?? [])
-    .map((p) => p.ga4_property_id.trim())
-    .filter((id) => id !== "");
+  const gaIds = (gaProps.data ?? []).map((p) => p.ga4_property_id.trim()).filter((id) => id !== "");
   const gaSummaries = useGa4Summaries(gaIds, daysAgo(28), iso(new Date()));
 
   const traffic = useMemo(() => {
@@ -186,11 +57,15 @@ function Dashboard() {
         const s = pid ? list.find((x) => x.propertyId === pid) : undefined;
         return s ? { blog: b, summary: s } : null;
       })
-      .filter((x): x is { blog: (typeof blogs)[number]; summary: (typeof list)[number] } => x !== null)
+      .filter(
+        (x): x is { blog: (typeof blogs)[number]; summary: (typeof list)[number] } => x !== null,
+      )
       .sort((a, b) => b.summary.kpis.sessions - a.summary.kpis.sessions)
       .slice(0, 5);
     return { sessions, prevSessions, views, users, activeNow, engagement, spark, perBlog };
   }, [gaSummaries.data, blogs, gaProps.data]);
+
+  const tracked = (gaProps.data ?? []).filter((p) => p.ga4_property_id.trim() !== "").length;
 
   if (hydrated && blogs.length === 0) {
     return (
@@ -198,12 +73,12 @@ function Dashboard() {
         <PageHeader title="Dashboard" subtitle="Bem-vindo ao PostFlow" />
         <EmptyState
           icon={<Rocket className="size-7" />}
-          title="Comece cadastrando um blog"
-          description="Depois você poderá criar categorias e organizar todas as suas postagens em um só lugar."
+          title="Comece cadastrando um site"
+          description="Cadastre seus sites para acompanhar o tráfego."
           action={
             <Button asChild className="mt-2 gap-2">
               <Link to="/blogs">
-                <Plus className="size-4" /> Cadastrar blog
+                <Plus className="size-4" /> Cadastrar site
               </Link>
             </Button>
           }
@@ -214,23 +89,27 @@ function Dashboard() {
 
   return (
     <>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Visão geral do seu calendário editorial"
-        action={
-          <Button asChild className="gap-2">
-            <Link to="/postagens">
-              <Plus className="size-4" /> Nova postagem
-            </Link>
-          </Button>
-        }
-      />
+      <PageHeader title="Dashboard" subtitle="Visão geral dos seus sites" />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Blogs" value={blogs.length} icon={<Newspaper className="size-5" />} accent />
-        <StatCard label="Categorias" value={categories.length} icon={<FolderTree className="size-5" />} />
-        <StatCard label="Postagens" value={posts.length} icon={<FileText className="size-5" />} />
-        <StatCard label="Publicadas" value={byStatus.publicado} icon={<Rocket className="size-5" />} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link to="/blogs" className="surface flex items-center gap-4 p-5 transition-all hover:shadow-lift">
+          <span className="gradient-brand grid size-11 place-items-center rounded-xl text-primary-foreground">
+            <Newspaper className="size-5" />
+          </span>
+          <div>
+            <p className="text-2xl font-bold tracking-tight">{blogs.length}</p>
+            <p className="text-xs text-muted-foreground">Sites</p>
+          </div>
+        </Link>
+        <Link to="/analytics" className="surface flex items-center gap-4 p-5 transition-all hover:shadow-lift">
+          <span className="grid size-11 place-items-center rounded-xl bg-accent text-accent-foreground">
+            <BarChart3 className="size-5" />
+          </span>
+          <div>
+            <p className="text-2xl font-bold tracking-tight">{tracked}</p>
+            <p className="text-xs text-muted-foreground">Sites com Google Analytics</p>
+          </div>
+        </Link>
       </div>
 
       {traffic ? (
@@ -274,7 +153,9 @@ function Dashboard() {
                 <li key={blog.id} className="flex items-center gap-3 py-2">
                   <span className="min-w-0 flex-1 truncate font-medium">{blog.name}</span>
                   <Sparkline values={summary.timeseries.map((t) => t.sessions)} />
-                  <span className="w-16 text-right tabular-nums">{fmtInt(summary.kpis.sessions)}</span>
+                  <span className="w-16 text-right tabular-nums">
+                    {fmtInt(summary.kpis.sessions)}
+                  </span>
                   <Delta current={summary.kpis.sessions} previous={summary.prevKpis.sessions} />
                   <LiveDot users={summary.activeNow} />
                 </li>
@@ -284,136 +165,6 @@ function Dashboard() {
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <div className="surface p-5">
-          <h2 className="text-sm font-semibold">Postagens por status</h2>
-          <div className="mt-4 space-y-3">
-            {(
-              [
-                ["rascunho", PenLine],
-                ["estrutura", ListTree],
-                ["artigo_completo", CheckCircle2],
-                ["agendado", CalendarClock],
-                ["publicado", Rocket],
-              ] as const
-            ).map(([status, Icon]) => {
-              const total = byStatus[status];
-              const pct = posts.length ? Math.round((total / posts.length) * 100) : 0;
-              return (
-                <Link
-                  key={status}
-                  to="/postagens"
-                  search={{ status }}
-                  title={`Ir para as postagens com status ${status}`}
-                  className="group block rounded-lg p-1.5 transition-colors hover:bg-accent/60"
-                >
-                  <div className="mb-1.5 flex items-center justify-between text-xs">
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                      <Icon className="size-3.5" />
-                      <StatusBadge status={status} />
-                    </span>
-                    <span className="inline-flex items-center gap-1 font-medium">
-                      {total}
-                      <ChevronRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-70" />
-                    </span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="gradient-brand h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="surface p-5 lg:col-span-2">
-          <h2 className="text-sm font-semibold">Postagens por categoria</h2>
-          {chartData.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              Crie categorias para visualizar o gráfico.
-            </p>
-          ) : (
-            <div className="mt-4 h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                    stroke="var(--color-border)"
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                    stroke="var(--color-border)"
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--color-popover)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "0.75rem",
-                      color: "var(--color-popover-foreground)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar dataKey="total" name="Postagens" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="surface mt-4 p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Sites WordPress conectados</h2>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/conexoes">Gerenciar conexões</Link>
-          </Button>
-        </div>
-        <WpOverview />
-      </div>
-
-      <div className="surface mt-4 p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Postagens recentes</h2>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/postagens">Ver todas</Link>
-          </Button>
-        </div>
-        {recent.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Nenhuma postagem cadastrada ainda.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {recent.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 py-3">
-                <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {p.cover ? (
-                    <img src={p.cover} alt="" className="size-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="grid size-full place-items-center text-muted-foreground">
-                      <FileText className="size-4" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{p.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {blogs.find((b) => b.id === p.blogId)?.name ?? "—"} ·{" "}
-                    {categories.find((c) => c.id === p.categoryId)?.name ?? "Sem categoria"}
-                  </p>
-                </div>
-                <StatusBadge status={p.status} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </>
   );
 }

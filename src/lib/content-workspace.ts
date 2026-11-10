@@ -100,7 +100,11 @@ export function serializeWorkspace(ws: Workspace): string {
     }),
   );
   const hasState =
-    ws.raw.trim() !== "" || ws.sections.length > 0 || ws.manual || ws.published.trim() !== "" || Boolean(ws.ml);
+    ws.raw.trim() !== "" ||
+    ws.sections.length > 0 ||
+    ws.manual ||
+    ws.published.trim() !== "" ||
+    Boolean(ws.ml);
   if (!hasState) return ws.article;
   return `${ws.article}\n${MARKER_START}${meta}${MARKER_END}`;
 }
@@ -124,7 +128,7 @@ export function splitSections(raw: string): ParseResult {
   const warnings: string[] = [];
   const blocks: string[][] = [];
   let current: string[] | null = null;
-  let preamble: string[] = [];
+  const preamble: string[] = [];
 
   for (const line of lines) {
     if (isCommandLine(line)) {
@@ -210,7 +214,8 @@ export function buildArticle(sections: Section[]): string {
 }
 
 /** true quando a postagem é do tipo "Postagens ML". */
-export const isMlContent = (content: string) => content.includes("%22ml%22%3A") && Boolean(parseWorkspace(content).ml);
+export const isMlContent = (content: string) =>
+  content.includes("%22ml%22%3A") && Boolean(parseWorkspace(content).ml);
 
 /** Grava os dados do produto ML dentro do conteúdo serializado. */
 export const withMl = (content: string, ml: MlProduct) =>

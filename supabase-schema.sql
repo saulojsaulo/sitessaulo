@@ -66,16 +66,11 @@ create policy "public access blog_properties" on public.blog_properties
 insert into public.blog_properties (blog_name, ga4_property_id, favicon_url)
 select v.blog_name, '', 'https://www.google.com/s2/favicons?domain=' || v.blog_name || '&sz=64'
 from (values
-  ('ailovepdf.com.br'),
-  ('smallpdf.com.br'),
-  ('moneypress.com.br'),
   ('cnpjbusca.com'),
-  ('valorfipe.com'),
-  ('hinarioccb.com'),
-  ('bibliaonlinecompleta.com.br'),
-  ('curiosohein.com'),
-  ('issoeincrivel.com'),
-  ('todogostoso.com')
+  ('dadosempresas.com'),
+  ('busqueicnpj.com'),
+  ('cnpjdireto.com'),
+  ('cnpjativo.com')
 ) as v(blog_name)
 where not exists (
   select 1 from public.blog_properties p where p.blog_name = v.blog_name
@@ -207,11 +202,13 @@ create policy "public access scheduler_locks" on public.scheduler_locks
 
 -- Cron (pg_cron + pg_net): a cada 1 min das 06:00 às 12:00 UTC = 03:00 às 09:00 BRT.
 -- Cada chamada avança as etapas que couberem em ~55s e retoma na chamada seguinte.
+-- ANTES: defina a secret CRON_SECRET no servidor do app (valor longo e aleatório) e use o
+-- MESMO valor abaixo. Sem a secret, a rota responde 503 (fechada de propósito).
 -- select cron.schedule('postflow-agendador', '* 6-12 * * *', $$
-
 --   select net.http_post(
---     url := 'https://project--19bb9d45-cf77-409a-821a-23001dc9845c.lovable.app/api/public/scheduler/run',
---     headers := '{"Content-Type":"application/json"}'::jsonb
+--     url := 'https://SEU-DOMINIO/api/public/scheduler/run',
+--     headers := '{"Content-Type":"application/json","Authorization":"Bearer COLE_O_CRON_SECRET_AQUI"}'::jsonb,
+--     body := '{}'::jsonb
 --   );
 -- $$);
 

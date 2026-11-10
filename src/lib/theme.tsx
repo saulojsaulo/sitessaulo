@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 type Theme = "light" | "dark";
 const KEY = "postflow.theme";
@@ -8,28 +8,32 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
   toggle: () => {},
 });
 
+/**
+ * O tema inicial é aplicado por um script no <head> (ver __root.tsx), antes da primeira
+ * pintura. Aqui só sincronizamos o estado do React com a classe já aplicada e gravamos a
+ * preferência quando a pessoa alterna — sem sobrescrever nada na montagem.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem(KEY) as Theme | null;
-    const initial =
-      stored ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    setTheme(initial);
+    setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
   }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem(KEY, theme);
-  }, [theme]);
+  const toggle = useCallback(() => {
+    setTheme((current) => {
+      const next: Theme = current === "dark" ? "light" : "dark";
+      document.documentElement.classList.toggle("dark", next === "dark");
+      try {
+        localStorage.setItem(KEY, next);
+      } catch {
+        /* armazenamento indisponível */
+      }
+      return next;
+    });
+  }, []);
 
-  return (
-    <ThemeContext.Provider
-      value={{ theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) }}
-    >
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>;
 }
 
 export const useTheme = () => useContext(ThemeContext);

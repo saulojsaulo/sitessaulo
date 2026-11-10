@@ -72,10 +72,44 @@ async function loadData() {
     publishDate: r.publish_date,
     createdAt: r.created_at,
   }));
-  const withCover = new Set(
-    ((coverRes.data ?? []) as { id: string }[]).map((r) => r.id),
-  );
+  const withCover = new Set(((coverRes.data ?? []) as { id: string }[]).map((r) => r.id));
   return { blogs, categories, posts, withCover };
+}
+
+/** Carrega só a postagem do passo (e o blog dela) — evita baixar todas as postagens a cada etapa. */
+async function loadPostWithBlog(postId: string): Promise<{ post: Post; blog: Blog | undefined }> {
+  const postRes = await supabase
+    .from("posts")
+    .select("id,blog_id,category_id,title,content,tags,status,publish_date,created_at")
+    .eq("id", postId)
+    .maybeSingle();
+  if (postRes.error) throw new Error(postRes.error.message);
+  const r = postRes.data as PostRow | null;
+  if (!r) throw new Error("Postagem não encontrada");
+  const post: Post = {
+    id: r.id,
+    blogId: r.blog_id,
+    categoryId: r.category_id ?? undefined,
+    title: r.title,
+    content: r.content,
+    tags: r.tags ?? [],
+    status: r.status as Post["status"],
+    publishDate: r.publish_date,
+    createdAt: r.created_at,
+  };
+  const blogRes = await supabase.from("blogs").select("*").eq("id", r.blog_id).maybeSingle();
+  const b = blogRes.data as BlogRow | null;
+  const blog: Blog | undefined = b
+    ? {
+        id: b.id,
+        name: b.name,
+        url: b.url,
+        description: b.description ?? "",
+        color: b.color,
+        createdAt: b.created_at,
+      }
+    : undefined;
+  return { post, blog };
 }
 
 /** Cria os registros do dia a partir do plano (idempotente). */
@@ -134,23 +168,32 @@ async function patchRun(id: string, patch: Record<string, unknown>) {
   if (error) console.error("[scheduler] patchRun", error.message);
 }
 
+/**
+ * Trava de execução única, atômica: só uma invocação consegue "tomar" a trava.
+ * 1) tenta renovar a trava existente SOMENTE se já expirou (UPDATE condicional);
+ * 2) se a linha ainda não existe, tenta criá-la (a chave primária impede duplicar).
+ */
 async function acquireLock(): Promise<boolean> {
-  const until = new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString();
-  const { data } = await supabase
+  const now = new Date();
+  const until = new Date(now.getTime() + LOCK_MINUTES * 60_000).toISOString();
+
+  const renewed = await supabase
     .from("scheduler_locks")
-    .select("lease_until")
+    .update({ lease_until: until })
     .eq("id", LOCK_ID)
-    .maybeSingle();
-  const lease = (data as { lease_until?: string } | null)?.lease_until;
-  if (lease && new Date(lease).getTime() > Date.now()) return false;
-  const { error } = await supabase
-    .from("scheduler_locks")
-    .upsert({ id: LOCK_ID, lease_until: until });
-  if (error) {
-    console.error("[scheduler] lock", error.message);
+    .lte("lease_until", now.toISOString())
+    .select("id");
+  if (renewed.error) {
+    console.error("[scheduler] lock", renewed.error.message);
     return false;
   }
-  return true;
+  if ((renewed.data ?? []).length > 0) return true;
+
+  const created = await supabase
+    .from("scheduler_locks")
+    .insert({ id: LOCK_ID, lease_until: until });
+  // Erro de chave duplicada = outra execução já detém a trava.
+  return !created.error;
 }
 
 async function releaseLock() {
@@ -174,10 +217,7 @@ type StepResult = "progress" | "done";
  * e salva o progresso. Assim cada invocação termina rápido e o ciclo é retomável.
  */
 async function stepOnce(postId: string, runId?: string): Promise<StepResult> {
-  const { blogs, posts } = await loadData();
-  const post = posts.find((p) => p.id === postId);
-  if (!post) throw new Error("Postagem não encontrada");
-  const blog = blogs.find((b) => b.id === post.blogId);
+  const { post, blog } = await loadPostWithBlog(postId);
   const niche = blog?.description?.trim() || blog?.name;
   const ctx = niche ? { niche } : {};
 
@@ -398,4 +438,3 @@ export async function runScheduler(dateISO = todayInSP()): Promise<RunResult> {
     await releaseLock();
   }
 }
-

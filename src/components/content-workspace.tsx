@@ -43,8 +43,6 @@ import {
   summarizeOutline,
 } from "@/lib/prompts";
 
-
-
 export interface WorkspaceApi {
   /** Substitui o texto da aba "Estrutura Bruta" e navega até ela. */
   setRaw: (text: string) => void;
@@ -73,9 +71,6 @@ interface Props {
   onReady?: (api: WorkspaceApi) => void;
 }
 
-
-
-
 export async function askGemini(
   prompt: string,
   meta?: { kind?: string; postId?: string | null; postTitle?: string | null; system?: string },
@@ -92,9 +87,6 @@ export async function askGemini(
   return res.text;
 }
 
-
-
-
 const copy = async (text: string, message: string) => {
   try {
     await navigator.clipboard.writeText(text);
@@ -104,7 +96,19 @@ const copy = async (text: string, message: string) => {
   }
 };
 
-export function ContentWorkspace({ value, onChange, resetKey, postId = null, title = "", cover, tags, niche, tool, onStatusChange, onReady }: Props) {
+export function ContentWorkspace({
+  value,
+  onChange,
+  resetKey,
+  postId = null,
+  title = "",
+  cover,
+  tags,
+  niche,
+  tool,
+  onStatusChange,
+  onReady,
+}: Props) {
   const [ws, setWs] = useState<Workspace>(() => parseWorkspace(value));
   const [warnings, setWarnings] = useState<string[]>([]);
   const [tab, setTab] = useState("bruta");
@@ -112,7 +116,6 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   const [reviewing, setReviewing] = useState(false);
   const [editorial, setEditorial] = useState(false);
   const [meta, setMeta] = useState("");
-
 
   const loadedFor = useRef(resetKey);
   const wsRef = useRef(ws);
@@ -207,7 +210,9 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
   };
 
   const reviewArticle = async () => {
-    const current = cleanHeadings(wsRef.current.manual ? wsRef.current.article : buildArticle(wsRef.current.sections));
+    const current = cleanHeadings(
+      wsRef.current.manual ? wsRef.current.article : buildArticle(wsRef.current.sections),
+    );
     if (!current.trim()) return;
     setReviewing(true);
     try {
@@ -234,7 +239,6 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
       if (words < MIN_ARTICLE_WORDS)
         toast.warning(`Artigo revisado com ${words} palavras (mínimo ${MIN_ARTICLE_WORDS}).`);
       else toast.success(`Artigo revisado pela IA — ${words} palavras`);
-
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao revisar o artigo");
     } finally {
@@ -290,7 +294,6 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
 
   const filled = ws.sections.filter((s) => s.response.trim() !== "").length;
 
-
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
       <div className="flex flex-wrap items-center gap-2">
@@ -326,7 +329,6 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
         </Button>
       </div>
 
-
       <TabsContent value="bruta" className="mt-3 space-y-3">
         <Textarea
           value={ws.raw}
@@ -335,7 +337,7 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
           className="min-h-72 font-mono text-xs"
         />
         {warnings.length > 0 ? (
-          <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+          <div className="flex gap-2 rounded-lg border tone-warning p-3 text-xs">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <ul className="space-y-1">
               {warnings.map((w) => (
@@ -376,7 +378,6 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
               onRemove={() => removeSection(s.id)}
             />
           ))
-
         )}
       </TabsContent>
 
@@ -512,7 +513,9 @@ export function ContentWorkspace({ value, onChange, resetKey, postId = null, tit
                 <Copy className="size-3.5" /> Copiar
               </Button>
             </div>
-            <pre className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">{meta}</pre>
+            <pre className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
+              {meta}
+            </pre>
           </div>
         ) : null}
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
@@ -550,7 +553,6 @@ function SectionCard({
   const [response, setResponse] = useState(section.response);
   const [loading, setLoading] = useState(false);
 
-
   useEffect(() => {
     if (!editing) {
       setPrompt(section.prompt);
@@ -568,9 +570,7 @@ function SectionCard({
         </span>
         <span
           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-            done
-              ? "border-success/30 bg-success/15 text-success"
-              : "border-warning/30 bg-warning/15 text-warning"
+            done ? "border-success/30 bg-success/15 text-success" : "tone-warning"
           }`}
         >
           {done ? <Check className="size-3" /> : <Clock className="size-3" />}
@@ -600,7 +600,6 @@ function SectionCard({
           Gerar com IA
         </Button>
         <div className="ml-auto flex items-center gap-1">
-
           <Button
             type="button"
             variant="ghost"

@@ -52,7 +52,12 @@ const fmtInt = (n: number) => n.toLocaleString("pt-BR");
 const fmtUsd = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 export function AiUsagePanel() {
   const [days, setDays] = useState("30");
@@ -84,10 +89,9 @@ export function AiUsagePanel() {
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown as UsageRow[];
     },
-
   });
 
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
 
   const stats = useMemo(() => {
     const todayKey = new Date().toDateString();
@@ -186,7 +190,7 @@ export function AiUsagePanel() {
       </header>
 
       {isError ? (
-        <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+        <div className="flex gap-2 rounded-lg border tone-warning p-3 text-xs">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
             Não foi possível ler o histórico de uso. Rode o SQL da tabela <code>ai_usage</code> no
@@ -203,7 +207,11 @@ export function AiUsagePanel() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Stat icon={<Zap className="size-4" />} label="Gerações hoje" value={fmtInt(stats.today)} />
+            <Stat
+              icon={<Zap className="size-4" />}
+              label="Gerações hoje"
+              value={fmtInt(stats.today)}
+            />
             <Stat
               icon={<Cpu className="size-4" />}
               label={`Gerações (${days}d)`}

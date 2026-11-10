@@ -1,5 +1,5 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -15,7 +15,6 @@ import {
   CheckSquare,
   X,
 } from "lucide-react";
-
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,11 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  askGemini,
-  ContentWorkspace,
-  type WorkspaceApi,
-} from "@/components/content-workspace";
+import { askGemini, ContentWorkspace, type WorkspaceApi } from "@/components/content-workspace";
 import { TagInput } from "@/components/tag-input";
 import { ImagePicker } from "@/components/image-picker";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -88,13 +83,19 @@ interface Draft {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-
-
 const buildCoverImagePrompt = (title: string, category: string) =>
   `Crie uma imagem fotográfica profissional e realista, no estilo de banco de imagens premium (como Unsplash ou Shutterstock), para ser usada como imagem de destaque de um artigo de blog.\n\nTema do artigo: "${title}"\n\nCategoria: ${category}\n\nRequisitos obrigatórios:\n\n- Dimensão: 600x400 pixels (proporção 3:2, horizontal)\n\n- Estilo: fotografia realista, com iluminação natural, profundidade de campo e textura autêntica — como se tivesse sido tirada com uma câmera profissional\n\n- NÃO deve parecer gerada por IA: evite texturas plásticas, simetria perfeita demais, pele/objetos "lisos" artificiais, mãos ou rostos distorcidos, ou composições genéricas típicas de IA\n\n- NÃO incluir nenhum texto, letras, números, logotipos, marcas d'água ou elementos gráficos com informação escrita\n\n- NÃO incluir elementos sensíveis, violentos, sexuais, chocantes, discriminatórios ou controversos, pois o site é monetizado com Google AdSense e precisa seguir as políticas de conteúdo do Google\n\n- Composição limpa, com foco claro no assunto principal relacionado ao título e à categoria\n\n- Cores equilibradas e naturais, adequadas para uso editorial/jornalístico\n\n- Evitar qualquer referência a marcas registradas, personagens protegidos por direitos autorais ou pessoas reais identificáveis\n\nGere uma imagem que represente visualmente o conceito central do título de forma direta, profissional e adequada para um artigo de blog nessa categoria.`;
 
 /** Miniatura carregada sob demanda (capas base64 são pesadas para vir na listagem). */
-function PostCover({ id, title, cover }: { id: string; title: string; cover?: string | undefined }) {
+function PostCover({
+  id,
+  title,
+  cover,
+}: {
+  id: string;
+  title: string;
+  cover?: string | undefined;
+}) {
   const { loadCover } = useStore();
   const [src, setSrc] = useState<string | undefined>(cover);
   const ref = useRef<HTMLDivElement>(null);
@@ -137,6 +138,8 @@ export interface PostsSearch {
   blog?: string;
   categoria?: string;
   post?: string;
+  /** 1 abre direto o editor de nova postagem (?novo=1). */
+  novo?: number;
 }
 
 export const validatePostsSearch = (search: Record<string, unknown>): PostsSearch => {
@@ -145,6 +148,7 @@ export const validatePostsSearch = (search: Record<string, unknown>): PostsSearc
   if (typeof search["blog"] === "string") out.blog = search["blog"];
   if (typeof search["categoria"] === "string") out.categoria = search["categoria"];
   if (typeof search["post"] === "string") out.post = search["post"];
+  if (search["novo"] === 1 || search["novo"] === "1") out.novo = 1;
   return out;
 };
 
@@ -156,12 +160,12 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
     posts,
     activeBlog,
     allTags,
+    hydrated,
     addPost,
     updatePost,
     removePost,
     loadCover,
   } = useStore();
-
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
@@ -183,8 +187,6 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
     [posts, mlMode],
   );
 
-
-
   const [blogFilter, setBlogFilter] = useState(search.blog ?? "all");
   const [catFilter, setCatFilter] = useState(search.categoria ?? "all");
   const [statusFilter, setStatusFilter] = useState(search.status ?? "all");
@@ -194,7 +196,10 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
   const [sort, setSort] = useState("date-desc");
 
   const blogName = (id: string) => blogs.find((b) => b.id === id)?.name ?? "—";
-  const catName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
+  const catName = useCallback(
+    (id?: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria",
+    [categories],
+  );
   /** Contexto do blog (nicho) usado nos prompts de IA. */
   const siteCtx = (blogId?: string) => {
     const blog = blogs.find((b) => b.id === blogId);
@@ -203,9 +208,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
   };
 
   const gaProps = useBlogProperties();
-  const gaIds = (gaProps.data ?? [])
-    .map((p) => p.ga4_property_id.trim())
-    .filter((id) => id !== "");
+  const gaIds = (gaProps.data ?? []).map((p) => p.ga4_property_id.trim()).filter((id) => id !== "");
   const gaSummaries = useGa4Summaries(gaIds, daysAgo(28), iso(new Date()));
 
   /** blogId -> páginas mais lidas no GA4 (28 dias) */
@@ -312,9 +315,8 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
     withCover,
     query,
     sort,
-    categories,
+    catName,
   ]);
-
 
   const [coverBusy, setCoverBusy] = useState(false);
   const makeCoverImage = useServerFn(generateCoverImageFn);
@@ -371,8 +373,14 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.post, posts]);
 
-
-
+  /** Abre o editor de nova postagem quando a URL traz ?novo=1 (botão do cabeçalho / ⌘K). */
+  const novoRef = useRef(false);
+  useEffect(() => {
+    if (search.novo !== 1 || novoRef.current || !hydrated) return;
+    novoRef.current = true;
+    startCreate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.novo, hydrated]);
 
   const save = () => {
     if (!draft) return;
@@ -576,9 +584,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <Checkbox
                 checked={filtered.length > 0 && selected.length === filtered.length}
-                onCheckedChange={(v) =>
-                  setSelected(v ? filtered.map((p) => p.id) : [])
-                }
+                onCheckedChange={(v) => setSelected(v ? filtered.map((p) => p.id) : [])}
                 aria-label="Selecionar todas as postagens visíveis"
               />
               Selecionar todas as visíveis
@@ -599,7 +605,6 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
           />
         </div>
       )}
-
 
       <div className="surface mb-6 grid gap-3 p-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="relative md:col-span-3 lg:col-span-1">
@@ -664,7 +669,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
           </SelectContent>
         </Select>
         <div className="flex gap-2">
-        <Select value={tagFilter} onValueChange={setTagFilter}>
+          <Select value={tagFilter} onValueChange={setTagFilter}>
             <SelectTrigger aria-label="Filtrar por palavra-chave">
               <SelectValue placeholder="Tag" />
             </SelectTrigger>
@@ -742,7 +747,6 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
               </div>
 
               <div className="flex min-w-0 items-center justify-between gap-3 p-3">
-
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="truncate font-semibold">{p.title}</h2>
@@ -809,9 +813,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
               {editing ? "Editar postagem" : "Nova postagem"}
               {mlMode ? " ML" : ""}
             </DialogTitle>
-            <DialogDescription>
-              Preencha o conteúdo e os metadados da publicação.
-            </DialogDescription>
+            <DialogDescription>Preencha o conteúdo e os metadados da publicação.</DialogDescription>
           </DialogHeader>
           {draft && (
             <div className="space-y-4">
@@ -824,55 +826,55 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   placeholder="Como escrever melhores títulos"
                 />
                 {mlMode ? (
-                <div className="mt-1 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="gap-2"
-                    disabled={!draft.title.trim()}
-                    onClick={() => void copyMlPrompt()}
-                  >
-                    <Copy className="size-4" /> Copiar Prompt Criar com IA
-                  </Button>
-                  <Button
-                    type="button"
-                    className="gap-2"
-                    disabled={!draft.title.trim() || aiLoading}
-                    onClick={() => void createMlWithAI()}
-                  >
-                    {aiLoading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="size-4" />
-                    )}
-                    Criar com IA
-                  </Button>
-                </div>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2"
+                      disabled={!draft.title.trim()}
+                      onClick={() => void copyMlPrompt()}
+                    >
+                      <Copy className="size-4" /> Copiar Prompt Criar com IA
+                    </Button>
+                    <Button
+                      type="button"
+                      className="gap-2"
+                      disabled={!draft.title.trim() || aiLoading}
+                      onClick={() => void createMlWithAI()}
+                    >
+                      {aiLoading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-4" />
+                      )}
+                      Criar com IA
+                    </Button>
+                  </div>
                 ) : (
-                <div className="mt-1 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="gap-2"
-                    disabled={!draft.title.trim()}
-                    onClick={generateStructurePrompt}
-                  >
-                    <Sparkles className="size-4" /> Gerar Prompt de Estrutura
-                  </Button>
-                  <Button
-                    type="button"
-                    className="gap-2"
-                    disabled={!draft.title.trim() || aiLoading}
-                    onClick={() => void generateStructureWithAI()}
-                  >
-                    {aiLoading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="size-4" />
-                    )}
-                    Gerar com IA
-                  </Button>
-                </div>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2"
+                      disabled={!draft.title.trim()}
+                      onClick={generateStructurePrompt}
+                    >
+                      <Sparkles className="size-4" /> Gerar Prompt de Estrutura
+                    </Button>
+                    <Button
+                      type="button"
+                      className="gap-2"
+                      disabled={!draft.title.trim() || aiLoading}
+                      onClick={() => void generateStructureWithAI()}
+                    >
+                      {aiLoading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-4" />
+                      )}
+                      Gerar com IA
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -977,13 +979,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   onChange={(cover) => setDraft({ ...draft, cover })}
                 />
               </div>
-              {mlMode && (
-                <MlProductForm
-                  value={ml}
-                  onChange={setMl}
-                  fileName={draft.title}
-                />
-              )}
+              {mlMode && <MlProductForm value={ml} onChange={setMl} fileName={draft.title} />}
               <div className="space-y-2">
                 <Label>Palavras-chave</Label>
                 <TagInput
@@ -1001,9 +997,7 @@ export function PostsPage({ ml: mlMode = false }: { ml?: boolean }) {
                   cover={draft.cover}
                   tags={draft.tags}
                   blogName={draft.blogId ? blogName(draft.blogId) : undefined}
-                  categoryName={
-                    draft.categoryId ? catName(draft.categoryId) : undefined
-                  }
+                  categoryName={draft.categoryId ? catName(draft.categoryId) : undefined}
                   {...(mlMode ? { ml } : {})}
                 />
               </div>

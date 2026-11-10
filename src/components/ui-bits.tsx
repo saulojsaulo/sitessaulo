@@ -4,14 +4,13 @@ import { STATUS_LABEL, type PostStatus } from "@/lib/types";
 
 const statusStyles: Record<PostStatus, string> = {
   rascunho: "bg-muted text-muted-foreground border-border",
-  estrutura: "bg-primary/12 text-primary border-primary/25",
-  sessoes_completas: "bg-primary/20 text-primary border-primary/35",
-  aguardando_revisao: "bg-warning/12 text-warning border-warning/25",
-  artigo_completo: "bg-cyan/15 text-cyan border-cyan/30",
-  agendado: "bg-warning/15 text-warning border-warning/30",
-  publicado: "bg-success/15 text-success border-success/30",
+  estrutura: "tone-primary",
+  sessoes_completas: "tone-primary",
+  aguardando_revisao: "tone-warning",
+  artigo_completo: "tone-cyan",
+  agendado: "tone-warning",
+  publicado: "tone-success",
 };
-
 
 export function StatusBadge({ status }: { status: PostStatus }) {
   return (
@@ -27,13 +26,7 @@ export function StatusBadge({ status }: { status: PostStatus }) {
   );
 }
 
-const tagPalette = [
-  "bg-primary/12 text-primary border-primary/25",
-  "bg-cyan/15 text-cyan border-cyan/30",
-  "bg-success/15 text-success border-success/30",
-  "bg-warning/15 text-warning border-warning/30",
-  "bg-chart-5/15 text-chart-5 border-chart-5/30",
-];
+const tagPalette = ["tone-primary", "tone-cyan", "tone-success", "tone-warning", "tone-pink"];
 
 export function TagChip({
   label,
@@ -82,14 +75,13 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <div className="relative mb-1 grid size-16 place-items-center rounded-2xl bg-accent text-accent-foreground">
-        <span className="absolute inset-0 -z-10 animate-pulse rounded-2xl bg-primary/20 blur-xl" />
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card/50 px-6 py-16 text-center">
+      <div className="mb-1 grid size-14 place-items-center rounded-2xl bg-accent text-accent-foreground">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <h3 className="text-base font-semibold">{title}</h3>
       <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
-      {action}
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   );
 }
@@ -104,12 +96,12 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b pb-5">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-[1.75rem]">{title}</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
       </div>
-      {action}
+      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
     </div>
   );
 }

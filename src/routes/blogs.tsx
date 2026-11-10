@@ -287,13 +287,7 @@ function BlogsPage() {
                           {g}
                         </button>
                       ))}
-                      <Link
-                        to="/postagens"
-                        search={{ blog: blog.id }}
-                        className="ml-auto text-primary hover:underline"
-                      >
-                        Ver todas as postagens
-                      </Link>
+                      <span className="ml-auto" />
                     </div>
 
                     {blogPosts.length === 0 ? (
@@ -319,17 +313,9 @@ function BlogsPage() {
                                 ) : (
                                   <span className="text-xs font-medium">{g.label}</span>
                                 )}
-                                <Link
-                                  to="/postagens"
-                                  search={
-                                    g.status
-                                      ? { blog: blog.id, status: g.status }
-                                      : { blog: blog.id, categoria: g.catId ?? "none" }
-                                  }
-                                  className="text-xs text-muted-foreground hover:text-primary"
-                                >
+                                <span className="text-xs text-muted-foreground">
                                   {list.length} postagem(ns) →
-                                </Link>
+                                </span>
                               </div>
                               <ul className="divide-y">
                                 {list.slice(0, 8).map((p) => (

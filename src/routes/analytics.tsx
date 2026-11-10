@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -22,6 +22,7 @@ import {
   ArrowUp,
   BarChart3,
   Clock,
+  DollarSign,
   Eye,
   Flame,
   MousePointerClick,
@@ -36,6 +37,8 @@ import {
 import { toast } from "sonner";
 import { PageHeader, EmptyState } from "@/components/ui-bits";
 
+import { AdsterraPanel } from "@/components/adsterra-panel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Delta, LiveDot, Sparkline } from "@/components/metric-bits";
+import { Card, ErrorBox, Kpi, tooltipStyle } from "@/components/analytics-bits";
 import { supabase, type BlogPropertyRow } from "@/lib/supabase";
 import {
   daysAgo,
@@ -64,15 +68,17 @@ import {
 import type { Ga4Kpis } from "@/lib/ga4-types";
 
 export const Route = createFileRoute("/analytics")({
+  validateSearch: (search: Record<string, unknown>): { aba?: "receita" } =>
+    search["aba"] === "receita" ? { aba: "receita" } : {},
   head: () => ({
     meta: [
-      { title: "Analytics GA4 — PostFlow" },
+      { title: "Analytics — PostFlow" },
       {
         name: "description",
         content:
-          "Tráfego em tempo real e histórico dos seus blogs no GA4: sessões, artigos mais lidos, origens e tendências.",
+          "Tráfego (GA4) e receita de anúncios (Adsterra) dos seus blogs: tempo real, tendências, placements e países.",
       },
-      { property: "og:title", content: "Analytics GA4 — PostFlow" },
+      { property: "og:title", content: "Analytics — PostFlow" },
       {
         property: "og:description",
         content: "Painel editorial com tempo real, comparativo de períodos e ranking de artigos.",
@@ -99,30 +105,11 @@ const CHART_COLORS = [
   "var(--chart-5)",
 ];
 
-const tooltipStyle = {
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  borderRadius: 10,
-  fontSize: 12,
-};
-
-function ErrorBox({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="surface flex flex-col items-center gap-3 px-6 py-10 text-center">
-      <p className="text-sm font-medium">Não foi possível carregar os dados desta propriedade.</p>
-      <p className="max-w-xl text-xs text-muted-foreground">{message}</p>
-      <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
-        <RefreshCw className="size-4" /> Tentar novamente
-      </Button>
-    </div>
-  );
-}
-
 function KpiSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="surface space-y-3 p-4">
+        <div key={i} className="panel space-y-3 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-7 w-20" />
         </div>
@@ -133,110 +120,97 @@ function KpiSkeleton({ count = 8 }: { count?: number }) {
 
 function BlockSkeleton({ height = 260 }: { height?: number }) {
   return (
-    <div className="tech-card p-4">
+    <div className="panel p-5">
       <Skeleton className="mb-4 h-4 w-40" />
       <Skeleton className="w-full" style={{ height }} />
     </div>
   );
 }
 
-function Kpi({
-  icon,
-  label,
-  value,
-  current,
-  previous,
-  hint,
-  accent,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  current?: number;
-  previous?: number;
-  hint?: string;
-  accent?: number;
-}) {
-  const color = CHART_COLORS[(accent ?? 0) % CHART_COLORS.length];
-  const pct =
-    current !== undefined && previous !== undefined && previous > 0
-      ? Math.max(4, Math.min(100, (current / Math.max(current, previous)) * 100))
-      : 100;
-  return (
-    <div
-      className="tech-card animate-tech-in p-4"
-      style={{ ["--accent-c" as string]: color, animationDelay: `${(accent ?? 0) * 60}ms` }}
-    >
-      <div className="relative flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        <span
-          className="grid size-7 place-items-center rounded-lg"
-          style={{ color, background: `color-mix(in oklab, ${color} 16%, transparent)`, boxShadow: `0 0 16px -4px ${color}` }}
-        >
-          {icon}
-        </span>
-        {label}
-      </div>
-      <div className="relative mt-3 flex items-baseline gap-2">
-        <p className="font-mono text-3xl font-bold tracking-tight tabular-nums">{value}</p>
-        {current !== undefined && previous !== undefined ? (
-          <Delta current={current} previous={previous} />
-        ) : null}
-      </div>
-      <div className="relative mt-3 h-1 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full transition-[width] duration-700"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, color-mix(in oklab, ${color} 40%, transparent), ${color})`, boxShadow: `0 0 10px ${color}` }}
-        />
-      </div>
-      {hint ? <p className="relative mt-2 text-[11px] text-muted-foreground">{hint}</p> : null}
-    </div>
-  );
+interface KpiSeries {
+  sessions: number[];
+  users: number[];
+  views: number[];
 }
 
-function Card({
-  title,
-  children,
-  action,
-  className = "",
-}: {
-  title: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
-}) {
+function KpiGrid({ kpis, prev, series }: { kpis: Ga4Kpis; prev: Ga4Kpis; series?: KpiSeries }) {
+  const pps = kpis.sessions ? kpis.screenPageViews / kpis.sessions : 0;
+  const prevPps = prev.sessions ? prev.screenPageViews / prev.sessions : 0;
   return (
-    <div className={`tech-card animate-tech-in p-4 ${className}`}>
-      <div className="relative mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <span className="size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
-          {title}
-        </h2>
-        {action}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function KpiGrid({ kpis, prev }: { kpis: Ga4Kpis; prev: Ga4Kpis }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Kpi accent={0} icon={<MousePointerClick className="size-3.5" />} label="Sessões" value={fmtInt(kpis.sessions)} current={kpis.sessions} previous={prev.sessions} />
-      <Kpi accent={1} icon={<Users className="size-3.5" />} label="Usuários ativos" value={fmtInt(kpis.activeUsers)} current={kpis.activeUsers} previous={prev.activeUsers} />
-      <Kpi accent={2} icon={<UserPlus className="size-3.5" />} label="Novos usuários" value={fmtInt(kpis.newUsers)} current={kpis.newUsers} previous={prev.newUsers} />
-      <Kpi accent={3} icon={<Eye className="size-3.5" />} label="Visualizações" value={fmtInt(kpis.screenPageViews)} current={kpis.screenPageViews} previous={prev.screenPageViews} />
-      <Kpi accent={4} icon={<BarChart3 className="size-3.5" />} label="Engajamento" value={fmtPct(kpis.engagementRate)} current={kpis.engagementRate} previous={prev.engagementRate} />
-      <Kpi accent={5} icon={<TrendingDown className="size-3.5" />} label="Rejeição" value={fmtPct(kpis.bounceRate)} current={kpis.bounceRate} previous={prev.bounceRate} />
-      <Kpi accent={6} icon={<Clock className="size-3.5" />} label="Duração média" value={fmtDur(kpis.averageSessionDuration)} current={kpis.averageSessionDuration} previous={prev.averageSessionDuration} />
-      <Kpi accent={7}
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Kpi
+        icon={<MousePointerClick className="size-3.5" />}
+        label="Sessões"
+        value={fmtInt(kpis.sessions)}
+        current={kpis.sessions}
+        previous={prev.sessions}
+        {...(series ? { series: series.sessions } : {})}
+      />
+      <Kpi
+        icon={<Users className="size-3.5" />}
+        label="Usuários ativos"
+        value={fmtInt(kpis.activeUsers)}
+        current={kpis.activeUsers}
+        previous={prev.activeUsers}
+        {...(series ? { series: series.users } : {})}
+      />
+      <Kpi
+        icon={<UserPlus className="size-3.5" />}
+        label="Novos usuários"
+        value={fmtInt(kpis.newUsers)}
+        current={kpis.newUsers}
+        previous={prev.newUsers}
+      />
+      <Kpi
+        icon={<Eye className="size-3.5" />}
+        label="Visualizações"
+        value={fmtInt(kpis.screenPageViews)}
+        current={kpis.screenPageViews}
+        previous={prev.screenPageViews}
+        {...(series ? { series: series.views } : {})}
+      />
+      <Kpi
+        icon={<BarChart3 className="size-3.5" />}
+        label="Taxa de engajamento"
+        value={fmtPct(kpis.engagementRate)}
+        current={kpis.engagementRate}
+        previous={prev.engagementRate}
+        points
+      />
+      <Kpi
+        icon={<TrendingDown className="size-3.5" />}
+        label="Taxa de rejeição"
+        value={fmtPct(kpis.bounceRate)}
+        current={kpis.bounceRate}
+        previous={prev.bounceRate}
+        invert
+        points
+      />
+      <Kpi
+        icon={<Clock className="size-3.5" />}
+        label="Duração média da sessão"
+        value={fmtDur(kpis.averageSessionDuration)}
+        current={kpis.averageSessionDuration}
+        previous={prev.averageSessionDuration}
+      />
+      <Kpi
         icon={<Sparkles className="size-3.5" />}
         label="Páginas por sessão"
-        value={(kpis.sessions ? kpis.screenPageViews / kpis.sessions : 0).toFixed(2)}
+        value={pps.toFixed(2)}
+        current={pps}
+        previous={prevPps}
         hint={`${fmtInt(kpis.eventCount)} eventos no período`}
       />
     </div>
   );
 }
+
+const DEVICE_LABEL: Record<string, string> = {
+  desktop: "Desktop",
+  mobile: "Mobile",
+  tablet: "Tablet",
+};
+const DEVICE_SHADE = ["bg-primary", "bg-primary/55", "bg-primary/25"];
 
 function RealtimePanel({ propertyId }: { propertyId: string }) {
   const rt = useGa4Realtime(propertyId);
@@ -244,59 +218,125 @@ function RealtimePanel({ propertyId }: { propertyId: string }) {
   if (rt.isError) return null;
 
   const data = rt.data;
+  const devices = data?.devices ?? [];
+  const deviceTotal = devices.reduce((a, d) => a + d.activeUsers, 0);
+  const pages = data?.pages ?? [];
+  const minutes = data?.minutes ?? [];
+  // Um rótulo a cada 5 minutos, sempre terminando em "agora".
+  const ticks = minutes
+    .filter((_, i) => (minutes.length - 1 - i) % 5 === 0)
+    .map((m) => m.minutesAgo);
+
   return (
     <Card
-      title="Tempo real (últimos 30 minutos)"
+      title="Tempo real"
+      subtitle="Últimos 30 minutos"
       action={
-        <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-          <Activity className="size-3.5" /> atualiza a cada 60s
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Activity className="size-3.5" /> atualiza a cada 60 s
         </span>
       }
     >
       {!data ? (
         <Skeleton className="h-[150px] w-full" />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[180px_1fr_260px]">
-          <div className="relative flex flex-col justify-center rounded-xl border border-chart-2/30 bg-chart-2/10 p-4 shadow-[0_0_24px_-8px_var(--chart-2)]">
-            <div className="flex items-center gap-2">
+        <div className="grid gap-6 lg:grid-cols-[190px_minmax(0,1fr)_280px]">
+          <div className="flex flex-col justify-center rounded-lg bg-muted/50 p-4">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <LiveDot users={data.activeUsers} label={false} />
-              <span className="text-xs text-muted-foreground">usuários agora</span>
+              Usuários agora
             </div>
-            <p className="mt-1 font-mono text-5xl font-bold tracking-tight text-chart-2 tabular-nums">{fmtInt(data.activeUsers)}</p>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              {data.devices.map((d) => `${d.name}: ${d.activeUsers}`).join(" · ") || "sem sessões ativas"}
+            <p className="mt-2 font-display text-5xl font-semibold leading-none tracking-tight tabular-nums">
+              {fmtInt(data.activeUsers)}
             </p>
+            {deviceTotal > 0 ? (
+              <div className="mt-4">
+                <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  {devices.map((d, i) => (
+                    <span
+                      key={d.name}
+                      className={DEVICE_SHADE[i % DEVICE_SHADE.length]}
+                      style={{ width: `${(d.activeUsers / deviceTotal) * 100}%` }}
+                    />
+                  ))}
+                </div>
+                <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                  {devices.map((d, i) => (
+                    <li key={d.name} className="flex items-center gap-1.5">
+                      <span
+                        className={`size-1.5 rounded-full ${DEVICE_SHADE[i % DEVICE_SHADE.length]}`}
+                      />
+                      <span className="flex-1">{DEVICE_LABEL[d.name] ?? d.name}</span>
+                      <span className="tabular-nums text-foreground">{d.activeUsers}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="mt-3 text-[11px] text-muted-foreground">Sem sessões ativas.</p>
+            )}
           </div>
-          <div className="h-[150px] w-full">
+
+          <div className="h-[170px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.minutes}>
+              <BarChart data={data.minutes} barCategoryGap="22%">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="minutesAgo"
-                  tick={{ fontSize: 10 }}
-                  stroke="var(--muted-foreground)"
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
                   tickFormatter={(v: number) => (v === 0 ? "agora" : `-${v}m`)}
-                  interval={4}
+                  ticks={ticks}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={28} />
-                <ReTooltip contentStyle={tooltipStyle} labelFormatter={(v) => `há ${v} min`} />
-                <Bar dataKey="activeUsers" name="Usuários" radius={[6, 6, 0, 0]} fillOpacity={0.85} fill="var(--chart-2)" />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                />
+                <ReTooltip
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: "var(--muted)", opacity: 0.6 }}
+                  labelFormatter={(v) => (v === 0 ? "agora" : `há ${v} min`)}
+                />
+                <Bar
+                  dataKey="activeUsers"
+                  name="Usuários"
+                  radius={[3, 3, 0, 0]}
+                  fill="var(--chart-1)"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">Lendo agora</p>
-            <ul className="max-h-[130px] space-y-1 overflow-y-auto pr-1 text-xs">
-              {data.pages.length === 0 && <li className="text-muted-foreground">Sem páginas ativas.</li>}
-              {data.pages.slice(0, 8).map((p) => (
-                <li key={p.pagePath} className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate" title={p.pagePath}>
-                    {p.pagePath || "(sem título)"}
-                  </span>
-                  <span className="tabular-nums text-chart-2">{p.activeUsers}</span>
-                </li>
-              ))}
-            </ul>
+
+          <div className="min-w-0 lg:border-l lg:pl-6">
+            <p className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span>Páginas sendo lidas</span>
+              <span className="tabular-nums">{pages.length}</span>
+            </p>
+            {pages.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhuma página ativa agora.</p>
+            ) : (
+              <ul className="divide-y text-xs">
+                {pages.slice(0, 6).map((p) => (
+                  <li key={p.pagePath} className="flex items-center gap-3 py-1.5">
+                    <span className="min-w-0 flex-1 truncate" title={p.pagePath}>
+                      {p.pagePath || "(sem título)"}
+                    </span>
+                    <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums">
+                      {p.activeUsers}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {pages.length > 6 ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                + {pages.length - 6} outras páginas
+              </p>
+            ) : null}
           </div>
         </div>
       )}
@@ -367,7 +407,15 @@ function SingleBlogView({
     <div className="space-y-4">
       <RealtimePanel propertyId={propertyId} />
 
-      <KpiGrid kpis={d.kpis} prev={d.prevKpis} />
+      <KpiGrid
+        kpis={d.kpis}
+        prev={d.prevKpis}
+        series={{
+          sessions: d.timeseries.map((t) => t.sessions),
+          users: d.timeseries.map((t) => t.users),
+          views: d.timeseries.map((t) => t.views),
+        }}
+      />
 
       <Card title="Sessões, usuários e visualizações">
         <div className="h-[280px] w-full">
@@ -384,13 +432,51 @@ function SingleBlogView({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={40} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
+                tickLine={false}
+                width={40}
+              />
               <ReTooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Area type="monotone" dataKey="sessions" name="Sessões" stroke="var(--chart-1)" fill="url(#gs)" strokeWidth={2} />
-              <Area type="monotone" dataKey="users" name="Usuários" stroke="var(--chart-2)" fill="url(#gu)" strokeWidth={2} />
-              <Area type="monotone" dataKey="views" name="Visualizações" stroke="var(--chart-4)" fill="transparent" strokeWidth={1.5} strokeDasharray="4 3" />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="sessions"
+                name="Sessões"
+                stroke="var(--chart-1)"
+                fill="url(#gs)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="users"
+                name="Usuários"
+                stroke="var(--chart-2)"
+                fill="url(#gu)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="views"
+                name="Visualizações"
+                stroke="var(--chart-4)"
+                fill="transparent"
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -420,7 +506,9 @@ function SingleBlogView({
                 <tr key={p.pagePath} className="border-b last:border-0">
                   <td className="max-w-[420px] py-2 pr-3">
                     <span className="block truncate font-medium">{p.title || p.pagePath}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{p.pagePath}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {p.pagePath}
+                    </span>
                   </td>
                   <td className="py-2 pr-3 text-right tabular-nums">{fmtInt(p.views)}</td>
                   <td className="py-2 pr-3 text-right tabular-nums">{fmtInt(p.users)}</td>
@@ -434,8 +522,16 @@ function SingleBlogView({
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <MoversTable title="Em alta vs. período anterior" icon={<TrendingUp className="size-4 text-chart-2" />} rows={d.gainers} />
-        <MoversTable title="Perdendo tráfego" icon={<TrendingDown className="size-4 text-destructive" />} rows={d.decliners} />
+        <MoversTable
+          title="Em alta vs. período anterior"
+          icon={<TrendingUp className="size-4 text-chart-2" />}
+          rows={d.gainers}
+        />
+        <MoversTable
+          title="Perdendo tráfego"
+          icon={<TrendingDown className="size-4 text-destructive" />}
+          rows={d.decliners}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -446,7 +542,9 @@ function SingleBlogView({
               <li key={p.pagePath} className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate">{p.pagePath || "(direto)"}</span>
                 <span className="tabular-nums">{fmtInt(p.sessions)}</span>
-                <span className="w-14 text-right tabular-nums text-muted-foreground">{fmtPct(p.engagementRate)}</span>
+                <span className="w-14 text-right tabular-nums text-muted-foreground">
+                  {fmtPct(p.engagementRate)}
+                </span>
               </li>
             ))}
           </ul>
@@ -469,13 +567,25 @@ function SingleBlogView({
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={d.channels} dataKey="sessions" nameKey="name" innerRadius={50} outerRadius={90}>
+                <Pie
+                  data={d.channels}
+                  dataKey="sessions"
+                  nameKey="name"
+                  innerRadius={50}
+                  outerRadius={90}
+                >
                   {d.channels.map((c, i) => (
                     <Cell key={c.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <ReTooltip contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -485,13 +595,25 @@ function SingleBlogView({
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={d.newVsReturning} dataKey="sessions" nameKey="name" innerRadius={50} outerRadius={90}>
+                <Pie
+                  data={d.newVsReturning}
+                  dataKey="sessions"
+                  nameKey="name"
+                  innerRadius={50}
+                  outerRadius={90}
+                >
                   {d.newVsReturning.map((c, i) => (
                     <Cell key={c.name} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <ReTooltip contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -504,10 +626,27 @@ function SingleBlogView({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={d.hours}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="hour" tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" interval={1} />
-                <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={36} />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  stroke="var(--border)"
+                  tickLine={false}
+                  interval={1}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  stroke="var(--border)"
+                  tickLine={false}
+                  width={36}
+                />
                 <ReTooltip contentStyle={tooltipStyle} labelFormatter={(v) => `${v}h`} />
-                <Bar dataKey="sessions" name="Sessões" radius={[6, 6, 0, 0]} fillOpacity={0.85} fill="var(--chart-3)" />
+                <Bar
+                  dataKey="sessions"
+                  name="Sessões"
+                  radius={[6, 6, 0, 0]}
+                  fillOpacity={0.85}
+                  fill="var(--chart-3)"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -518,10 +657,26 @@ function SingleBlogView({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={d.weekdays}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={36} />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  stroke="var(--border)"
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  stroke="var(--border)"
+                  tickLine={false}
+                  width={36}
+                />
                 <ReTooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="sessions" name="Sessões" radius={[6, 6, 0, 0]} fillOpacity={0.85} fill="var(--chart-5)" />
+                <Bar
+                  dataKey="sessions"
+                  name="Sessões"
+                  radius={[6, 6, 0, 0]}
+                  fillOpacity={0.85}
+                  fill="var(--chart-5)"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -534,10 +689,25 @@ function SingleBlogView({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={d.devices}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" width={36} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  stroke="var(--border)"
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  stroke="var(--border)"
+                  tickLine={false}
+                  width={36}
+                />
                 <ReTooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="sessions" name="Sessões" radius={[6, 6, 0, 0]} fill="var(--chart-1)" />
+                <Bar
+                  dataKey="sessions"
+                  name="Sessões"
+                  radius={[6, 6, 0, 0]}
+                  fill="var(--chart-1)"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -569,7 +739,8 @@ function SingleBlogView({
   );
 }
 
-type SortKey = "blog" | "sessions" | "activeUsers" | "screenPageViews" | "engagementRate" | "activeNow";
+type SortKey =
+  "blog" | "sessions" | "activeUsers" | "screenPageViews" | "engagementRate" | "activeNow";
 
 function AllBlogsView({
   properties,
@@ -580,7 +751,10 @@ function AllBlogsView({
   startDate: string;
   endDate: string;
 }) {
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "sessions", desc: true });
+  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({
+    key: "sessions",
+    desc: true,
+  });
   const query = useGa4Summaries(
     properties.map((p) => p.ga4_property_id),
     startDate,
@@ -603,8 +777,12 @@ function AllBlogsView({
   }, [query.data, properties, sort]);
 
   const totals = useMemo(() => {
-    const sum = (pick: (r: (typeof rows)[number]) => number) => rows.reduce((a, r) => a + pick(r), 0);
-    const weighted = (pick: (k: Ga4Kpis) => number, sessions: (r: (typeof rows)[number]) => number) => {
+    const sum = (pick: (r: (typeof rows)[number]) => number) =>
+      rows.reduce((a, r) => a + pick(r), 0);
+    const weighted = (
+      pick: (k: Ga4Kpis) => number,
+      sessions: (r: (typeof rows)[number]) => number,
+    ) => {
       const total = sum(sessions);
       return total ? rows.reduce((a, r) => a + pick(r.kpis) * sessions(r), 0) / total : 0;
     };
@@ -614,9 +792,18 @@ function AllBlogsView({
       newUsers: sum((r) => r.kpis.newUsers),
       screenPageViews: sum((r) => r.kpis.screenPageViews),
       eventCount: sum((r) => r.kpis.eventCount),
-      engagementRate: weighted((k) => k.engagementRate, (r) => r.kpis.sessions),
-      bounceRate: weighted((k) => k.bounceRate, (r) => r.kpis.sessions),
-      averageSessionDuration: weighted((k) => k.averageSessionDuration, (r) => r.kpis.sessions),
+      engagementRate: weighted(
+        (k) => k.engagementRate,
+        (r) => r.kpis.sessions,
+      ),
+      bounceRate: weighted(
+        (k) => k.bounceRate,
+        (r) => r.kpis.sessions,
+      ),
+      averageSessionDuration: weighted(
+        (k) => k.averageSessionDuration,
+        (r) => r.kpis.sessions,
+      ),
     };
     const prev: Ga4Kpis = {
       sessions: sum((r) => r.prevKpis.sessions),
@@ -624,16 +811,26 @@ function AllBlogsView({
       newUsers: sum((r) => r.prevKpis.newUsers),
       screenPageViews: sum((r) => r.prevKpis.screenPageViews),
       eventCount: sum((r) => r.prevKpis.eventCount),
-      engagementRate: weighted((k) => k.engagementRate, (r) => r.prevKpis.sessions),
-      bounceRate: weighted((k) => k.bounceRate, (r) => r.prevKpis.sessions),
-      averageSessionDuration: weighted((k) => k.averageSessionDuration, (r) => r.prevKpis.sessions),
+      engagementRate: weighted(
+        (k) => k.engagementRate,
+        (r) => r.prevKpis.sessions,
+      ),
+      bounceRate: weighted(
+        (k) => k.bounceRate,
+        (r) => r.prevKpis.sessions,
+      ),
+      averageSessionDuration: weighted(
+        (k) => k.averageSessionDuration,
+        (r) => r.prevKpis.sessions,
+      ),
     };
     return { curr, prev, activeNow: sum((r) => r.activeNow) };
   }, [rows]);
 
   const combined = useMemo(() => {
     const map = new Map<string, number>();
-    for (const r of rows) for (const t of r.timeseries) map.set(t.date, (map.get(t.date) ?? 0) + t.sessions);
+    for (const r of rows)
+      for (const t of r.timeseries) map.set(t.date, (map.get(t.date) ?? 0) + t.sessions);
     return [...map.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, sessions]) => ({ label: fmtDay(date), sessions }));
@@ -674,7 +871,13 @@ function AllBlogsView({
         className="inline-flex items-center gap-1 hover:text-foreground"
       >
         {label}
-        {sort.key === key ? sort.desc ? <ArrowDown className="size-3" /> : <ArrowUp className="size-3" /> : null}
+        {sort.key === key ? (
+          sort.desc ? (
+            <ArrowDown className="size-3" />
+          ) : (
+            <ArrowUp className="size-3" />
+          )
+        ) : null}
       </button>
     </th>
   );
@@ -702,10 +905,27 @@ function AllBlogsView({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={44} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
+                tickLine={false}
+                width={44}
+              />
               <ReTooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="sessions" name="Sessões" stroke="var(--chart-1)" fill="url(#gall)" strokeWidth={2} />
+              <Area
+                type="monotone"
+                dataKey="sessions"
+                name="Sessões"
+                stroke="var(--chart-1)"
+                fill="url(#gall)"
+                strokeWidth={2}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -732,7 +952,9 @@ function AllBlogsView({
                   <td className="py-2 pr-3">
                     {r.blog}
                     {!r.ok && (
-                      <span className="ml-2 text-xs text-destructive">{r.error?.slice(0, 80) ?? "erro"}</span>
+                      <span className="ml-2 text-xs text-destructive">
+                        {r.error?.slice(0, 80) ?? "erro"}
+                      </span>
                     )}
                   </td>
                   <td className="py-2 pr-3">
@@ -745,8 +967,12 @@ function AllBlogsView({
                   <td className="py-2 pr-3 text-right">
                     <Delta current={r.kpis.sessions} previous={r.prevKpis.sessions} />
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{fmtInt(r.kpis.activeUsers)}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{fmtInt(r.kpis.screenPageViews)}</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">
+                    {fmtInt(r.kpis.activeUsers)}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular-nums">
+                    {fmtInt(r.kpis.screenPageViews)}
+                  </td>
                   <td className="py-2 text-right tabular-nums">{fmtPct(r.kpis.engagementRate)}</td>
                 </tr>
               ))}
@@ -757,7 +983,9 @@ function AllBlogsView({
 
       <Card title="Artigos campeões da rede" action={<Flame className="size-4 text-chart-4" />}>
         <ul className="space-y-2 text-xs">
-          {topArticles.length === 0 && <li className="text-muted-foreground">Sem dados no período.</li>}
+          {topArticles.length === 0 && (
+            <li className="text-muted-foreground">Sem dados no período.</li>
+          )}
           {topArticles.map((a) => (
             <li key={`${a.blog}${a.pagePath}`} className="flex items-center gap-2">
               <span className="min-w-0 flex-1 truncate" title={a.pagePath}>
@@ -803,7 +1031,7 @@ function PropertyIdsEditor({ properties }: { properties: BlogPropertyRow[] }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map((p) => (
           <div key={p.id} className="space-y-1">
-            <Label className="text-xs">{p.blog_name}</Label>
+            <Label className="text-xs font-medium text-muted-foreground">{p.blog_name}</Label>
             <Input
               value={values[p.id] ?? ""}
               placeholder="ex: 123456789"
@@ -819,7 +1047,7 @@ function PropertyIdsEditor({ properties }: { properties: BlogPropertyRow[] }) {
   );
 }
 
-function AnalyticsPage() {
+function TrafficTab() {
   const props = useBlogProperties();
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string>("all");
@@ -832,6 +1060,10 @@ function AnalyticsPage() {
   const endDate = preset === "custom" ? customEnd : iso(new Date());
 
   const configured = (props.data ?? []).filter((p) => p.ga4_property_id.trim() !== "");
+
+  const shortDate = (d: string) =>
+    new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const rangeLabel = `${shortDate(startDate)} – ${shortDate(endDate)}`;
 
   return (
     <div>
@@ -851,21 +1083,21 @@ function AnalyticsPage() {
             >
               <RefreshCw className="size-4" /> Atualizar
             </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowConfig((v) => !v)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setShowConfig((v) => !v)}
+            >
               <Settings2 className="size-4" /> Property IDs
             </Button>
           </div>
         }
       />
 
-      <div className="mb-4">
-      </div>
-
-
-
-      <div className="mb-4 flex flex-wrap items-end gap-3">
+      <div className="panel mb-5 flex flex-wrap items-end gap-x-4 gap-y-3 p-4">
         <div className="min-w-[220px] space-y-1">
-          <Label className="text-xs">Blog</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Blog</Label>
           <Select value={selected} onValueChange={setSelected}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione" />
@@ -881,7 +1113,7 @@ function AnalyticsPage() {
           </Select>
         </div>
         <div className="min-w-[200px] space-y-1">
-          <Label className="text-xs">Período</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Período</Label>
           <Select value={preset} onValueChange={setPreset}>
             <SelectTrigger>
               <SelectValue />
@@ -898,17 +1130,22 @@ function AnalyticsPage() {
         {preset === "custom" && (
           <>
             <div className="space-y-1">
-              <Label className="text-xs">De</Label>
-              <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+              <Label className="text-xs font-medium text-muted-foreground">De</Label>
+              <Input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Até</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Até</Label>
               <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
             </div>
           </>
         )}
-        <p className="pb-2 text-xs text-muted-foreground">
-          Comparando com o período anterior de mesma duração.
+        <p className="ml-auto self-center text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{rangeLabel}</span> · comparado ao período
+          anterior de mesma duração
         </p>
       </div>
 
@@ -944,5 +1181,39 @@ function AnalyticsPage() {
         <SingleBlogView propertyId={selected} startDate={startDate} endDate={endDate} />
       )}
     </div>
+  );
+}
+
+function AnalyticsPage() {
+  const { aba } = Route.useSearch();
+  const navigate = useNavigate();
+  const tab = aba === "receita" ? "receita" : "trafego";
+
+  return (
+    <Tabs
+      value={tab}
+      onValueChange={(v) =>
+        void navigate({
+          to: "/analytics",
+          search: v === "receita" ? { aba: "receita" } : {},
+          replace: true,
+        })
+      }
+    >
+      <TabsList className="mb-5 h-10 w-full sm:w-auto">
+        <TabsTrigger value="trafego" className="flex-1 gap-2 sm:flex-none">
+          <BarChart3 className="size-4" /> Tráfego (GA4)
+        </TabsTrigger>
+        <TabsTrigger value="receita" className="flex-1 gap-2 sm:flex-none">
+          <DollarSign className="size-4" /> Receita (Adsterra)
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="trafego" className="mt-0">
+        <TrafficTab />
+      </TabsContent>
+      <TabsContent value="receita" className="mt-0">
+        <AdsterraPanel />
+      </TabsContent>
+    </Tabs>
   );
 }
