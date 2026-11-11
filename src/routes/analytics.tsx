@@ -64,7 +64,9 @@ import {
   useGa4Realtime,
   useGa4Report,
   useGa4Summaries,
+  normalizeDomain,
 } from "@/lib/use-ga4";
+import { useStore } from "@/lib/store";
 import type { Ga4Kpis } from "@/lib/ga4-types";
 
 export const Route = createFileRoute("/analytics")({
@@ -1050,6 +1052,7 @@ function PropertyIdsEditor({ properties }: { properties: BlogPropertyRow[] }) {
 function TrafficTab() {
   const props = useBlogProperties();
   const qc = useQueryClient();
+  const { blogs } = useStore();
   const [selected, setSelected] = useState<string>("all");
   const [preset, setPreset] = useState<string>("28");
   const [customStart, setCustomStart] = useState(daysAgo(28));
@@ -1096,22 +1099,6 @@ function TrafficTab() {
       />
 
       <div className="panel mb-5 flex flex-wrap items-end gap-x-4 gap-y-3 p-4">
-        <div className="min-w-[220px] space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">Blog</Label>
-          <Select value={selected} onValueChange={setSelected}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os blogs</SelectItem>
-              {configured.map((p) => (
-                <SelectItem key={p.id} value={p.ga4_property_id}>
-                  {p.blog_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="min-w-[200px] space-y-1">
           <Label className="text-xs font-medium text-muted-foreground">Período</Label>
           <Select value={preset} onValueChange={setPreset}>
@@ -1148,6 +1135,31 @@ function TrafficTab() {
           anterior de mesma duração
         </p>
       </div>
+
+      {configured.length > 0 && (
+        <div role="tablist" className="mb-4 flex gap-1 overflow-x-auto border-b">
+          {[{ id: "all", name: "Todos os sites", pid: "all" }, ...configured.map((p) => ({ id: p.id, name: p.blog_name, pid: p.ga4_property_id }))].map((t) => {
+            const active = selected === t.pid;
+            const logo = t.pid === "all" ? "" : siteLogo(t.name, blogs);
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setSelected(t.pid)}
+                className={`-mb-px flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors ${active ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                {t.pid === "all" ? (
+                  <BarChart3 className="size-4" />
+                ) : logo ? (
+                  <img src={logo} alt="" className="size-4 object-contain" loading="lazy" />
+                ) : null}
+                {t.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {showConfig && props.data && (
         <div className="mb-4">
@@ -1216,4 +1228,12 @@ function AnalyticsPage() {
       </TabsContent>
     </Tabs>
   );
+}
+
+function siteLogo(name: string, blogs: { name: string; url: string; logo?: string | undefined }[]) {
+  const key = normalizeDomain(name);
+  const blog = blogs.find((b) => normalizeDomain(b.url) === key || b.name.trim().toLowerCase() === name.trim().toLowerCase());
+  if (blog?.logo) return blog.logo;
+  const domain = blog ? normalizeDomain(blog.url) : key;
+  return domain.includes(".") ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : "";
 }
